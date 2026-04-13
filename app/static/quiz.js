@@ -38,10 +38,19 @@ function renderQuiz(questions) {
   questions.forEach((q, qi) => {
     const qDiv = document.createElement('div');
     qDiv.className = 'question';
+
+    if (q.category) {
+      const tag = document.createElement('span');
+      tag.className = 'q-tag';
+      tag.textContent = q.category;
+      qDiv.appendChild(tag);
+    }
+
     const prompt = document.createElement('div');
     prompt.className = 'q-prompt';
     prompt.textContent = `${qi + 1}. ${q.prompt}`;
     qDiv.appendChild(prompt);
+
     q.choices.forEach((choice, ci) => {
       const btn = document.createElement('button');
       btn.className = 'choice';
@@ -57,6 +66,12 @@ function renderQuiz(questions) {
           if (idx === q.answer_index) el.classList.add('correct');
           if (idx === ci && !isCorrect) el.classList.add('wrong');
         });
+        if (q.explanation) {
+          const exp = document.createElement('div');
+          exp.className = 'q-explanation';
+          exp.textContent = q.explanation;
+          qDiv.appendChild(exp);
+        }
         if (state.answers.every(a => a !== null)) renderSummary(state, questions.length);
       });
       qDiv.appendChild(btn);
@@ -73,7 +88,7 @@ function renderSummary(state, total) {
   h.textContent = `Score: ${state.correct} / ${total} (${pct}%)`;
   div.appendChild(h);
   const btn = document.createElement('button');
-  btn.className = 'secondary';
+  btn.className = 'btn secondary';
   btn.textContent = 'New quiz';
   btn.addEventListener('click', () => location.reload());
   div.appendChild(btn);

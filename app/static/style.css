@@ -352,11 +352,35 @@ main.container {
   margin: 14px 0;
   box-shadow: var(--glass-shadow);
 }
+.q-tag {
+  display: inline-block;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
 .q-prompt {
   font-size: 0.98rem;
   font-weight: 600;
   margin-bottom: 12px;
   color: var(--ink);
+}
+.q-explanation {
+  margin-top: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
 }
 .choice {
   display: block;

@@ -13,6 +13,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from .questions import generate_quiz
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "exams.json"
 STATIC_DIR = ROOT / "static"
@@ -56,25 +58,6 @@ def iter_items(exam: dict) -> list[str]:
         for sub in sec.get("subsections", []):
             out.extend(sub.get("items", []))
     return out
-
-
-def target_and_foreign_pools(slug: str) -> tuple[list[str], list[str]]:
-    """Return (target, foreign) item pools for quiz generation.
-
-    Foreign pool excludes items present in the target exam to prevent ambiguous
-    distractors caused by real cross-exam content overlap.
-    """
-    exam = EXAMS[slug]
-    target_items = sorted({i for i in iter_items(exam) if 15 <= len(i) <= 220})
-    target_set = set(target_items)
-    foreign: set[str] = set()
-    for other_slug, other_exam in EXAMS.items():
-        if other_slug == slug:
-            continue
-        for item in iter_items(other_exam):
-            if 15 <= len(item) <= 220 and item not in target_set:
-                foreign.add(item)
-    return target_items, sorted(foreign)
 
 
 # --------- FastAPI app ----------
@@ -121,48 +104,15 @@ def make_quiz(slug: str, req: QuizRequest):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
-    target_items, foreign_items = target_and_foreign_pools(slug)
-
-    if len(target_items) < 4 or len(foreign_items) < 3:
-        raise HTTPException(400, "Not enough items for quiz")
-
-    n = max(1, min(req.count, len(target_items)))
-    chosen_correct = random.sample(target_items, k=n)
-
-    questions = []
-    for idx, correct in enumerate(chosen_correct):
-        q_type = random.choice(["belongs", "not_belongs"])
-        if q_type == "belongs":
-            distractors = random.sample(foreign_items, k=3)
-            choices = [correct] + distractors
-            random.shuffle(choices)
-            answer_value = correct
-            prompt = f"Which of the following is a step in the {exam['title']} exam?"
-        else:
-            pool = [i for i in target_items if i != correct]
-            if len(pool) < 3:
-                distractors = random.sample(foreign_items, k=3)
-                choices = [correct] + distractors
-                random.shuffle(choices)
-                answer_value = correct
-                q_type = "belongs"
-                prompt = f"Which of the following is a step in the {exam['title']} exam?"
-            else:
-                valid_three = random.sample(pool, k=3)
-                foreign = random.choice(foreign_items)
-                choices = valid_three + [foreign]
-                random.shuffle(choices)
-                answer_value = foreign
-                prompt = f"Which of the following is NOT a step in the {exam['title']} exam?"
-
-        questions.append({
-            "id": idx,
-            "type": q_type,
-            "prompt": prompt,
-            "choices": choices,
-            "answer_index": choices.index(answer_value),
-        })
-    return {"exam": {"slug": exam["slug"], "title": exam["title"]}, "questions": questions}
+    n = max(1, min(req.count, 30))
+    questions = generate_quiz(slug, exam, n)
+    if not questions:
+        raise HTTPException(400, "No questions could be generated for this exam")
+    return {
+        "exam": {"slug": exam["slug"], "title": exam["title"]},
+        "questions": questions,
+        "question_count": len(questions),
+    }
 
 
 # --------- scoring (section-aware) ----------
