@@ -95,12 +95,60 @@ def clean_text(text: str | None) -> str:
         return ""
     s = text.replace("\n", " ")
     s = re.sub(r"\s+", " ", s).strip()
+    # Strip (cid:N) PDF character-encoding failures
+    s = re.sub(r"\(cid:\d+\)", "", s).strip()
     # Remove handwritten annotations bleeding across cell edges
     s = _ANNOTATION_RE.sub("", s).strip()
     # Strip trailing garbage single-letter student marks (e.g., " I", " 3", " Y")
     s = re.sub(r"\s+[A-Za-z0-9]{1,2}\s*$", "", s)
     # Collapse any doubled spaces created by removals
     s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+# Specific handwritten fragments that bled into the PDF text layer. These are
+# discovered by auditing the parsed output. If a checklist item is exactly one
+# of these (or contains one as an obvious trailing suffix), we drop/strip it.
+_ITEM_NOISE_FULL = {
+    "Stront",
+    "HOU Road",
+    "Sam",
+    "LIFE",
+    "IDC",
+    "Im",
+    "IT Ssce",
+    "Ams",
+    "non",
+    "PB ASS",
+}
+_ITEM_TRAILING_NOISE_RE = re.compile(
+    r"\s+("
+    r"back"
+    r"|Sam"
+    r"|LIFE"
+    r"|IDC"
+    r"|Im"
+    r"|Ams"
+    r"|HOU Road"
+    r"|PB ASS"
+    r"|L for Anterior"
+    r")\s*$"
+)
+
+
+def scrub_item(text: str) -> str | None:
+    """Remove known handwritten-annotation noise. Returns None if the item
+    is entirely noise (so the caller should drop it)."""
+    s = text.strip()
+    if s in _ITEM_NOISE_FULL:
+        return None
+    # Strip trailing annotations
+    prev = None
+    while prev != s:
+        prev = s
+        s = _ITEM_TRAILING_NOISE_RE.sub("", s).strip()
+    if not s or s in _ITEM_NOISE_FULL:
+        return None
     return s
 
 
@@ -175,24 +223,37 @@ def parse_pdf(pdf_path: Path) -> list[dict]:
                     other_cells = [(c or "").strip() for c in row[1:]]
                     non_empty_others = [c for c in other_cells if c]
 
+                    # Long sentence-like col-0 rows are checklist items (test
+                    # descriptions), NOT subsection labels — even if col 2 has
+                    # stray text (pdfplumber sometimes splits word wraps across
+                    # columns: e.g. "lumbarradiculo" in col 0 and "pathy" in
+                    # col 2). Treat the entire row as one item.
+                    if label_cell and len(label_cell) > 60 and " " in label_cell:
+                        if current_major is None:
+                            current_major = ensure_major("General")
+                        if current_sub is None:
+                            current_sub = ensure_sub(current_major, "Steps")
+                        # Merge col 0 + other non-empty cells. If the col-0 text
+                        # ends mid-word (no trailing space) and the other cell
+                        # is a short fragment, join directly (no space).
+                        col0 = clean_text(label_cell)
+                        extras = [clean_text(c) for c in other_cells if c and c.strip()]
+                        merged = col0
+                        for ex in extras:
+                            if len(ex) <= 12 and merged and merged[-1].isalpha() and ex[0].isalpha():
+                                merged = merged + ex  # continuation fragment
+                            else:
+                                merged = merged + " " + ex
+                        for item in split_items(merged):
+                            current_sub["items"].append(item)
+                        continue
+
                     # Major section: label is set, other columns all empty/None
                     if label_cell and not non_empty_others:
                         name = clean_text(label_cell)
                         if is_all_caps(name):
                             current_major = ensure_major(clean_label(name))
                             current_sub = None
-                            continue
-                        # Long sentence-like rows are checklist items, not labels
-                        # (e.g., "Empty Can test (supraspinatus)- patient elevates...").
-                        # These appear in Special Tests sections where each test spans
-                        # the entire row width in the PDF.
-                        if len(name) > 60 and " " in name:
-                            if current_major is None:
-                                current_major = ensure_major("General")
-                            if current_sub is None:
-                                current_sub = ensure_sub(current_major, "Steps")
-                            for item in split_items(name):
-                                current_sub["items"].append(item)
                             continue
                         # Otherwise it's a subsection label for a default major.
                         if current_major is None:
@@ -217,17 +278,20 @@ def parse_pdf(pdf_path: Path) -> list[dict]:
                     for item in split_items(item_cell):
                         current_sub["items"].append(item)
 
-    # Dedupe + drop empty
+    # Scrub handwritten noise, dedupe, and drop empties
     for sec in sections:
         for sub in sec["subsections"]:
             seen = set()
             uniq = []
             for it in sub["items"]:
-                k = re.sub(r"\s+", " ", it.lower()).strip()
+                scrubbed = scrub_item(it)
+                if not scrubbed:
+                    continue
+                k = re.sub(r"\s+", " ", scrubbed.lower()).strip()
                 if k in seen:
                     continue
                 seen.add(k)
-                uniq.append(it)
+                uniq.append(scrubbed)
             sub["items"] = uniq
         sec["subsections"] = [s for s in sec["subsections"] if s["items"]]
     sections = [s for s in sections if s["subsections"]]

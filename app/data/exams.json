@@ -26,9 +26,9 @@
             ]
           },
           {
-            "name": "Inspection (verbalize)",
+            "name": "Seated Position",
             "items": [
-              "Compare both breast for:",
+              "Inspection (verbalize) SSCOULDR SSSC Nipple inversion, Nipple retraction supernume nipple Compare both breast for:",
               "Size",
               "Symmetry said Shape",
               "Contour",
@@ -373,13 +373,8 @@
               "P o s t e r i o r hip (posterior-2superior iliac spine, ischial tubeI.rosity, sacroiliac joint)",
               "Greater trochanter and trochanteric bursa -",
               "Femur (entire length)",
-              "Verbalize: Palpating for tenderness, warmth, crepitus \"Bonyjointtenderness,crepitus, warmth\" - -"
-            ]
-          },
-          {
-            "name": "Assess ROM (active and passive)",
-            "items": [
-              "Hip flexion /extension",
+              "Verbalize: Palpating for tenderness, warmth, crepitus \"Bonyjointtenderness,crepitus, warmth\" - -",
+              "Assess ROM (active and passive) Taysupine\" - (compare bilaterally) Hip flexion /extension",
               "Hip abduction/adduction",
               "Hip internal rotation/External rotation"
             ]
@@ -447,18 +442,17 @@
               "Lateral malleolus",
               "Lateral ankle ligaments",
               "Medial malleolus",
-              "Stront",
               "Medial ankle ligaments",
               "Ankle joint",
               "Calcaneus",
-              "Achilles Tendon back",
+              "Achilles Tendon",
               "Gastrocnemius",
               "Soleus",
               "Plantar fascia",
               "Metatarsals",
               "Phalanges",
               "M-TP, PIP, DIP joints",
-              "Verbalize: Palpating for tenderness, warmth, swelling, bogginess, crepitus(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)"
+              "Verbalize: Palpating for tenderness, warmth, swelling, bogginess, crepitus"
             ]
           },
           {
@@ -495,14 +489,8 @@
             "name": "Lower limb measurement Also inMskSpine exam",
             "items": [
               "Measured from the anterior iliac spine to the medial malleolus crossing the knee on the medial side.",
-              "Perform bilaterally."
-            ]
-          },
-          {
-            "name": "\u2191 FABER (Flexion, ABduction, External Rotation) test (groin strain)",
-            "items": [
-              "With the patient supine, position the leg into 90 degrees of flexion and externally rotate and abduct it so that the ipsilateral ankle rests distal to the knee of the contralateral leg.",
-              "\"Ankle sits ontop of opposite thigh just above knee\""
+              "Perform bilaterally.",
+              "\u2191 FABER (Flexion, ABduction, External Rotation) test (groin strain) \"Makea 4\" With the patient supine, position the leg into 90 degrees of flexion and externally rotate and abduct it so that the ipsilateral ankle rests distal to the knee of the contralateral leg. \"Ankle sits ontop of opposite thigh just above knee\""
             ]
           },
           {
@@ -553,14 +541,8 @@
           {
             "name": "Bulge Sign (Assess knee for minor effusion)",
             "items": [
-              "Patient is supine or has leg fully extended with support. Sweep your hand while applying pressure proximally along the medial side of the knee. Then apply pressure from proximal to distal on the lateral side of the knee. Observe for the bulge returning on the medial side."
-            ]
-          },
-          {
-            "name": "Ballon Sign of Ballottement Test (Assess knee for major effusion)",
-            "items": [
-              "Patient is supine with the leg fully extended. Place the thumb and index finger of your right hand on each side of the patella; with the left hand, compress the suprapatellar recess against the femur.",
-              "Palpate for fluid ejected or \u201cballooning\u201d into the spaces next to the patella under your right thumb and index finger. A palpable fluid wave is a Positive Test or a \"Balloon Sign.\""
+              "Patient is supine or has leg fully extended with support. Sweep your hand while applying pressure proximally along the medial side of the knee. Then apply pressure from proximal to distal on the lateral side of the knee. Observe for the bulge returning on the medial side.",
+              "Ballon Sign of Ballottement Test (Assess knee for major effusion) Patient is supine with the leg fully extended. Place the thumb and index finger of your right hand on each side of the patella; with the left hand, compress the suprapatellar recess against the femur. Palpate for fluid ejected or \u201cballooning\u201d into the spaces next to the patella under your right thumb and index finger. A palpable fluid wave is a Positive Test or a \"Balloon Sign.\""
             ]
           },
           {
@@ -573,7 +555,7 @@
         ]
       }
     ],
-    "item_count": 91
+    "item_count": 88
   },
   "upper-extremity-msk": {
     "slug": "upper-extremity-msk",
@@ -588,7 +570,7 @@
             "items": [
               "Abnormal positioning",
               "Deformity",
-              "Swelling Sam",
+              "Swelling",
               "Fasiculations",
               "Muscular atrophy"
             ]
@@ -678,13 +660,8 @@
               "PIP Joint",
               "DIP Joint",
               "Palm Verbalize: palpating for thickening and contractures.",
-              "Verbalize: Palpating for soft tissue, bony or joint tenderness, warmth, swelling, bogginess, crepitus, and masses"
-            ]
-          },
-          {
-            "name": "ASSESSES: Active ROM (AROM) & Passive ROM \"copymy movements\" Bilaterally",
-            "items": [
-              "Wrist Flexion /Extension",
+              "Verbalize: Palpating for soft tissue, bony or joint tenderness, warmth, swelling, bogginess, crepitus, and masses",
+              "ASSESSES: Active ROM (AROM) & Passive ROM \"copymy movements\" Bilaterally Wrist Flexion /Extension",
               "Wrist Ulnar/Radial Deviation",
               "Finger Flexion/Extension",
               "Finger Abduction /Adduction",
@@ -763,13 +740,8 @@
           {
             "name": "Steps",
             "items": [
-              "Spurling test- Ask patient to rotate the head to one side then tilt head back. Repeat on the other side. Positive sign-pain in posterior neck on ipsilateral side. ->Cervical radiculopathy"
-            ]
-          },
-          {
-            "name": "Sciatica Straight-leg raise - patient lies supine with neck slightly flexed, leg is raised with knee extended. Performs bilaterally. lumbarradiculo",
-            "items": [
-              "pathy",
+              "Spurling test- Ask patient to rotate the head to one side then tilt head back. Repeat on the other side. Positive sign-pain in posterior neck on ipsilateral side. ->Cervical radiculopathy",
+              "Sciatica Straight-leg raise - patient lies supine with neck slightly flexed, leg is raised with knee extended. Performs bilaterally. lumbarradiculopathy",
               "Leg length measurement - leg length is measured from the anterior iliac spine to the medial malleolus crossing the knee on the medial side. Performs bilaterally. Lumbar scoliosis ,lowbackpain,SI joint pain,hipostroarthritis ,stressfX,",
               "Cervical spine strength- Flexion, Extension, Rotation (b/l), Lateral bending (b/l) *Consider for a patient with neck pain",
               "Scoliosis \u2013 have patient stand with knees straight and flex forward at the waist. Inspect for spine curvature, asymmetry of the shoulders, shoulder blades, and hips from anterior and posterior"
@@ -809,8 +781,8 @@
           {
             "name": "Inspection of pubic region and penis (verbalize)",
             "items": [
-              "Pubic hair for distribution, characteristics or infestations (verbalize) IDC",
-              "Skin for excoriations, lesions, erythema, signs of inflammation (verbalize) LIFE",
+              "Pubic hair for distribution, characteristics or infestations (verbalize)",
+              "Skin for excoriations, lesions, erythema, signs of inflammation (verbalize)",
               "Penis for deformities",
               "Foreskin: retract or ask the patient to retract foreskin if uncircumcised, replace or ask patient to replace the foreskin following exam: chancres, carcinomas, smegma (verbalize)",
               "Glans of penis for (verbalize) ulcers, scars, nodules or signs of inflammation, color, smegma, - - balanitis, chancre, herpes, warts, cancer - -",
@@ -835,7 +807,7 @@
           {
             "name": "Palpation of Scrotum and Testes (verbalize)",
             "items": [
-              "Testes and Epididymis (located superior posterior surface of testes) for:(cid:0)(verbalize) size, shape, consistency, tenderness, swelling, nodules and masses(cid:0)(cid:0)(cid:0)(cid:0)(cid:0)",
+              "Testes and Epididymis (located superior posterior surface of testes) for:(verbalize) size, shape, consistency, tenderness, swelling, nodules and masses",
               "(verbalize) Scrotum for lesions or edema",
               "(verbalize) Spermatic cord, including vas deferens for nodules and masses, swelling,"
             ]
@@ -872,16 +844,16 @@
             "name": "Inspection (verbalize)",
             "items": [
               "Patient lying in lateral decubitus position with knees bent or standing leaning forward over exam table",
-              "Sacrococcygeal, gluteal cleft and perianal area for: (verbalize) pilonidal dimpling or tuft of hair, erythema, excoriations, lumps, ulcers, inflammation, rashes(cid:0)(cid:0)(cid:0)(cid:0)",
-              "A n u Lsu fmopr:s ((cid:0)(cid:0)(cid:0)(cid:0)(cid:0)verbalize) changes in skin, lesions, fissures, hemorrhoids, fistulae, rectal prolapse"
+              "Sacrococcygeal, gluteal cleft and perianal area for: (verbalize) pilonidal dimpling or tuft of hair, erythema, excoriations, lumps, ulcers, inflammation, rashes",
+              "A n u Lsu fmopr:s (verbalize) changes in skin, lesions, fissures, hemorrhoids, fistulae, rectal prolapse"
             ]
           },
           {
             "name": "Palpation (verbalize)",
             "items": [
               "Apply a small amount of lubrication to gloved index finger. Apply gentle pressure with index finger at the sphincter, once the sphincter has relaxed, slowly insert index finger into rectum.",
-              "Note smoothness and evenness of muscular ring(cid:0)(cid:0)(cid:0)(cid:0)(cid:0) - -",
-              "Slowly rotate finger clockwise direction and then counterclockwise evaluating rectal walls for (verbalize) masses and nodules, tenderness, irregularities, induration Im",
+              "Note smoothness and evenness of muscular ring - -",
+              "Slowly rotate finger clockwise direction and then counterclockwise evaluating rectal walls for (verbalize) masses and nodules, tenderness, irregularities, induration",
               "Inter-rectal palpation of the prostate: rotate hand further counterclockwise so that your finger can examen the posterior surface of the prostate gland. Sweep finger carefully over the prostate gland identifying lateral lobes and median sulcus between them. Then if possible, extend your finger above the prostate to the region of the seminal vesicles and the peritoneal cavity and sweep the anterior wall. (verbalize)",
               "Note symmetry of lobes, size, shape, contour, consistency, irregularities, tenderness, masses and nodules Im IT Ssce -"
             ]
@@ -891,7 +863,7 @@
             "items": [
               "Note sphincter tone of the anus",
               "To check for external sphincter tone, ask pt to bear down & squeeze rectal muscles",
-              "(verbalize) Note for any tenderness, induration, irregularities and nodules Im",
+              "(verbalize) Note for any tenderness, induration, irregularities and nodules",
               "Note smoothness and evenness of muscular ring Like beginning butnow while bearingdown , -"
             ]
           },
@@ -920,7 +892,7 @@
           {
             "name": "Steps",
             "items": [
-              "Introduces self to patient using first and last name and role. Wash/Sanitize hands Don appropriate PPE Patient is wearing gown, open to back"
+              "Introduces self to patient using first and last name and role. Wash/Sanitize hands Don appropriate PPE Patient is wearing gown, open to"
             ]
           },
           {
@@ -971,7 +943,6 @@
               "Perform a fundoscopic exam bilaterally observing for",
               "Optic disc",
               "Vessels",
-              "HOU Road",
               "Retinal Pallor",
               "Hemorrhages"
             ]
@@ -1005,7 +976,7 @@
             "name": "CN IX & X - Glossopharyngeal & Vagus",
             "items": [
               "Inspect symmetric rise of soft palate and uvula is at midline when patient says \"ahh\"",
-              "Verbalize \"Test gag reflex using tongue blade\" perform on Ams",
+              "Verbalize \"Test gag reflex using tongue blade\" perform on",
               "*mainly used in evaluation of patients in a coma"
             ]
           },
@@ -1024,10 +995,9 @@
             ]
           },
           {
-            "name": "Coordination & Fine Motor Skills (All tests completed bilaterally)",
+            "name": "Coordnation / Cerebellar Function",
             "items": [
-              "Assess rapid alternating movements of each hand, finger tap, feet",
-              "Observing: Speed, Rhythm, Smoothness Dysdiadochokinesia",
+              "Coordination & Fine Motor Skills (All tests completed bilaterally) Assess rapid alternating movements of each hand, finger tap, feet Observing: Speed, Rhythm, Smoothness Dysdiadochokinesia",
               "Assess Finger to Nose Test ->Intentiontremor,ipsilateralcerebellar hemisphere lesion(past-pointing)",
               "Heel to Shin Test -> ipsilateralcerebellardysfunction"
             ]
@@ -1036,7 +1006,7 @@
             "name": "Gait/Station (Stance)",
             "items": [
               "Sit to Stand: Ask pt to rise from chair without use of hands Polymyalgia Rheumatica",
-              "Have patient walk at least 5 paces to and from you, observing the gait for posture, balance, arm swing, stride PB ASS",
+              "Have patient walk at least 5 paces to and from you, observing the gait for posture, balance, arm swing, stride",
               "Tandem gait (heel-toe)",
               "Walks on toes",
               "Walks on heels"
@@ -1048,9 +1018,9 @@
         "name": "Sensory",
         "subsections": [
           {
-            "name": "Assesses Light Touch, Sharp and Dull, and Temperature at here verbalize",
+            "name": "Steps",
             "items": [
-              "Ask patient to close eyes and point to where they feel the sensation and if it feels the same bilaterally",
+              "Assesses Light Touch, Sharp and Dull, and Temperature at here verbalize Ask patient to close eyes and point to where they feel the sensation and if it feels the same bilaterally",
               "Assess Light touch",
               "Assess Sharp and Dull Touch",
               "Would assess temperature using an alcohol pad (verbalize)",
@@ -1084,13 +1054,8 @@
           {
             "name": "Stereognosis contralateral (bilateral)- parietal lobelesion",
             "items": [
-              "Have patient close eyes and identify two objects placed in their hand one at a time."
-            ]
-          },
-          {
-            "name": "Graphesthesia (bilateral)-c po an rit er ta al lat le or ka el lesion",
-            "items": [
-              "Have patient close eyes. Trace a number or letter on the patient's palm. Ask the patient to identify."
+              "Have patient close eyes and identify two objects placed in their hand one at a time.",
+              "Graphesthesia (bilateral)-c po an rit er ta al lat le or ka el lesion Have patient close eyes. Trace a number or letter on the patient's palm. Ask the patient to identify."
             ]
           },
           {
@@ -1121,13 +1086,8 @@
             "name": "Assess Pronator Drift",
             "items": [
               "Have patient close eyes. Patient holds both arms in front of them at 90 degree angle.",
-              "Observe for the forearm and palm to drop and turn inward. Then gently tap on the forearm in a downward motion observing for the arm to return to baseline. UmN lesion stroke tumors , ,"
-            ]
-          },
-          {
-            "name": "Assess Muscle Strength bilaterally Verbalize the Nerve root I . 3 . Y . 2.",
-            "items": [
-              "Shoulder shrug",
+              "Observe for the forearm and palm to drop and turn inward. Then gently tap on the forearm in a downward motion observing for the arm to return to baseline. UmN lesion stroke tumors , ,",
+              "Assess Muscle Strength bilaterally Verbalize the Nerve root I . 3 . Y . 2. Shoulder shrug",
               "Shoulder abduction (C5, C6)",
               "Elbow flexion (C5, C6) and extension (C6, C7, C8)",
               "Wrist extension (C6,C7,C8, Radial Nerve)",
@@ -1182,30 +1142,20 @@
           {
             "name": "Asterixis -> uremid (encephalopathy)",
             "items": [
-              "Ask the patient to \u201cstop traffic\u201d by extending both arms, with wrists dorsiflexed and fingers spread. Observe for abnormal \u201cflapping\u201d tremor at the wrist"
-            ]
-          },
-          {
-            "name": "Straight Leg Raise LeSciatic Pain Herniation, , Stenosis Radiculopathy ,",
-            "items": [
-              "Place the patient in the supine position. Raise the patient's relaxed and straightened leg, flexing the thigh at the hip Document at what angle pain and side low back pain occurs"
+              "Ask the patient to \u201cstop traffic\u201d by extending both arms, with wrists dorsiflexed and fingers spread. Observe for abnormal \u201cflapping\u201d tremor at the wrist",
+              "Straight Leg Raise LeSciatic Pain Herniation, , Stenosis Radiculopathy , Place the patient in the supine position. Raise the patient's relaxed and straightened leg, flexing the thigh at the hip Document at what angle pain and side low back pain occurs"
             ]
           },
           {
             "name": "Plantar Reflex (Babinski) ->UMN:St,ro ,",
             "items": [
-              "Stroke the lateral aspect of the sole from the heel to the ball of the foot, curving medially across the ball observing for dosiflexion of the big toe plantarflexion in babies"
-            ]
-          },
-          {
-            "name": "Romberg test",
-            "items": [
-              "Patient stands with both feet together, arms at side, with eyes open. If stable, ask patient to close their eyes and continue to stand for 20-30 sec. Observe for loss of balance. Provider guards patient."
+              "Stroke the lateral aspect of the sole from the heel to the ball of the foot, curving medially across the ball observing for dosiflexion of the big toe plantarflexion in babies",
+              "Romberg test Patient stands with both feet together, arms at side, with eyes open. If stable, ask patient to close their eyes and continue to stand for 20-30 sec. Observe for loss of balance. Provider guards patient."
             ]
           }
         ]
       }
     ],
-    "item_count": 96
+    "item_count": 94
   }
 }

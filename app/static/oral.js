@@ -50,8 +50,28 @@ function setBusy(busy) {
   stopRec.disabled = !busy;
 }
 
+const isSecure = window.isSecureContext;
+
 if (!navigator.mediaDevices || !window.MediaRecorder) {
-  recStatus.textContent = 'Browser does not support audio recording. Use Chrome, Firefox, Edge, or Safari 14+.';
+  if (!isSecure) {
+    const httpsUrl = 'https://med.67-205-142-127.nip.io' + window.location.pathname;
+    recStatus.innerHTML = '';  // we'll set via DOM to avoid injection
+    recStatus.textContent = '';
+    const msg = document.createElement('span');
+    msg.textContent = 'Microphone access requires HTTPS. Open ';
+    const link = document.createElement('a');
+    link.href = httpsUrl;
+    link.textContent = httpsUrl;
+    link.style.color = 'var(--accent-strong)';
+    link.style.textDecoration = 'underline';
+    const tail = document.createElement('span');
+    tail.textContent = ' instead.';
+    recStatus.appendChild(msg);
+    recStatus.appendChild(link);
+    recStatus.appendChild(tail);
+  } else {
+    recStatus.textContent = 'Browser does not support audio recording. Use Chrome, Firefox, Edge, or Safari 14+.';
+  }
   startRec.disabled = true;
 }
 

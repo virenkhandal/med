@@ -1,0 +1,16 @@
+# Caddy reverse-proxy with automatic Let's Encrypt TLS.
+#
+# Hostname uses nip.io, which resolves any *.67-205-142-127.nip.io directly to
+# 67.205.142.127 — no DNS setup required. Caddy negotiates a cert from Let's
+# Encrypt using HTTP-01 on port 80 the first time it starts.
+
+{
+	email viren@med.study
+}
+
+med.67-205-142-127.nip.io {
+	encode zstd gzip
+	reverse_proxy med:8000 {
+		header_up X-Forwarded-Proto https
+	}
+}
