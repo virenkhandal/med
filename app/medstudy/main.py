@@ -425,16 +425,26 @@ def oral_page(slug: str):
       <button id="stopRec" class="btn secondary" disabled>Stop &amp; score</button>
       <span id="recStatus" class="status"></span>
     </div>
-    <div class="two-col">
-      <section class="card panel">
-        <h3>Transcript</h3>
-        <div id="transcript" class="transcript">Recording will appear here after you stop…</div>
-      </section>
-      <section class="card panel">
+    <section class="card panel transcript-panel">
+      <h3>Transcript</h3>
+      <div id="transcript" class="transcript">Recording will appear here after you stop…</div>
+    </section>
+    <section class="card panel checklist-panel">
+      <div class="panel-head">
         <h3>Checklist</h3>
-        <div class="checklist">{checklist_html}</div>
-      </section>
-    </div>
+        <button id="toggleChecklist" class="icon-btn" type="button" aria-pressed="false" aria-label="Reveal checklist">
+          <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path class="icon-eye-open" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+            <circle class="icon-eye-open" cx="12" cy="12" r="3"/>
+            <path class="icon-eye-closed" d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a19.77 19.77 0 0 1 4.06-4.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a19.77 19.77 0 0 1-2.16 3.19M14.12 14.12A3 3 0 1 1 9.88 9.88"/>
+            <line class="icon-eye-closed" x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+          <span class="toggle-label">Reveal</span>
+        </button>
+      </div>
+      <div id="checklist" class="checklist checklist-hidden">{checklist_html}</div>
+      <p class="checklist-placeholder">Checklist hidden — tap the eye if you get stuck.</p>
+    </section>
     <div id="report"></div>
     <script>window.EXAM_SLUG = {json.dumps(slug)};</script>
     <script src="/static/oral.js"></script>

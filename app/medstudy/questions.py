@@ -1,18 +1,7 @@
-"""Question generators that turn the knowledge base into quiz questions.
+"""Question generators for the med-study quiz.
 
-Each generator takes a random seed / state and returns either a question dict
-or None (if no question can be produced for the given exam). The quiz endpoint
-calls generators until it has enough questions.
-
-Question dict shape:
-    {
-        "type": str,             # e.g. "cn_test_to_number"
-        "category": str,         # human-readable ("Cranial nerves")
-        "prompt": str,           # the question text
-        "choices": [str, ...],   # 4 unique choices
-        "answer_index": int,     # index of correct answer in choices
-        "explanation": str | None,
-    }
+Every generator draws ONLY from knowledge.py, which in turn is PDF-faithful.
+No outside clinical reasoning; if a fact isn't in a PDF, we don't quiz it.
 """
 
 from __future__ import annotations
@@ -39,10 +28,7 @@ Question = dict
 
 
 def _shuffled_choices(correct: str, distractors: list[str]) -> tuple[list[str], int]:
-    """Return (choices, answer_index) with correct + 3 unique distractors shuffled.
-
-    If not enough unique distractors, raises ValueError.
-    """
+    """Return (choices, answer_index) with correct + 3 unique distractors shuffled."""
     pool = list({d for d in distractors if d and d != correct})
     if len(pool) < 3:
         raise ValueError("not enough distractors")
@@ -52,61 +38,39 @@ def _shuffled_choices(correct: str, distractors: list[str]) -> tuple[list[str], 
     return choices, choices.index(correct)
 
 
-def _pick_unique(items: list, key: Callable, exclude: set, n: int) -> list:
-    """Pick up to n items whose key() is not in `exclude` and is unique among picks."""
-    random.shuffle(items)
-    out = []
-    seen = set()
-    for it in items:
-        k = key(it)
-        if k in exclude or k in seen:
-            continue
-        out.append(it)
-        seen.add(k)
-        if len(out) >= n:
-            break
-    return out
-
-
 # ---------------------------------------------------------------------------
 # Cranial nerve generators (Neurologic exam)
 # ---------------------------------------------------------------------------
 
 
-def _cn_label(cn: dict) -> str:
-    return f"CN {cn['num']} — {cn['name']}"
-
-
-def _gen_cn_test_to_number(exam_slug: str) -> Optional[Question]:
+def _gen_cn_test_to_label(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     cn = random.choice(CRANIAL_NERVES)
     test = random.choice(cn["tests"])
-    correct = _cn_label(cn)
-    distractors = [_cn_label(c) for c in CRANIAL_NERVES if c["num"] != cn["num"]]
+    distractors = [c["label"] for c in CRANIAL_NERVES if c["label"] != cn["label"]]
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(cn["label"], distractors)
     except ValueError:
         return None
     return {
-        "type": "cn_test_to_number",
+        "type": "cn_test_to_label",
         "category": "Cranial nerves",
-        "prompt": f"Which cranial nerve is being tested by the following maneuver? — \"{test}\"",
+        "prompt": f"Per the Neuro PDF, which cranial nerve is tested by: \"{test}\"?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{correct} ({cn['kind']}): {'; '.join(cn['tests'])}.",
+        "explanation": f"{cn['label']} — tests listed in the PDF: " + "; ".join(cn["tests"]) + ".",
     }
 
 
-def _gen_cn_number_to_test(exam_slug: str) -> Optional[Question]:
+def _gen_cn_label_to_test(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     cn = random.choice(CRANIAL_NERVES)
     correct = random.choice(cn["tests"])
-    # Distractors: tests from OTHER cranial nerves.
     other_tests: list[str] = []
     for other in CRANIAL_NERVES:
-        if other["num"] == cn["num"]:
+        if other["label"] == cn["label"]:
             continue
         other_tests.extend(other["tests"])
     try:
@@ -114,34 +78,12 @@ def _gen_cn_number_to_test(exam_slug: str) -> Optional[Question]:
     except ValueError:
         return None
     return {
-        "type": "cn_number_to_test",
+        "type": "cn_label_to_test",
         "category": "Cranial nerves",
-        "prompt": f"Which maneuver correctly tests {_cn_label(cn)}?",
+        "prompt": f"Per the Neuro PDF, which maneuver is used to test {cn['label']}?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{_cn_label(cn)} is {cn['kind']}; abnormal findings include {cn['finding']}.",
-    }
-
-
-def _gen_cn_kind(exam_slug: str) -> Optional[Question]:
-    if exam_slug != "neurologic":
-        return None
-    cn = random.choice(CRANIAL_NERVES)
-    kind_map = {"sensory": "Purely sensory", "motor": "Purely motor", "both": "Both sensory and motor"}
-    correct = kind_map[cn["kind"]]
-    distractors = [v for k, v in kind_map.items() if v != correct]
-    distractors.append("Purely autonomic")
-    try:
-        choices, idx = _shuffled_choices(correct, distractors)
-    except ValueError:
-        return None
-    return {
-        "type": "cn_kind",
-        "category": "Cranial nerves",
-        "prompt": f"{_cn_label(cn)} is classified as:",
-        "choices": choices,
-        "answer_index": idx,
-        "explanation": f"{_cn_label(cn)} is {cn['kind']}.",
+        "explanation": None,
     }
 
 
@@ -154,19 +96,18 @@ def _gen_dermatome_level_to_area(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     d = random.choice(DERMATOMES)
-    correct = d["area"]
     distractors = [x["area"] for x in DERMATOMES if x["level"] != d["level"]]
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(d["area"], distractors)
     except ValueError:
         return None
     return {
         "type": "dermatome_level_to_area",
         "category": "Dermatomes",
-        "prompt": f"Which body area corresponds to the {d['level']} dermatome?",
+        "prompt": f"Per the Neuro PDF, which body area corresponds to the {d['level']} dermatome?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{d['level']} → {d['area']}.",
+        "explanation": f"{d['level']} → {d['area']} (from the Neuro checklist).",
     }
 
 
@@ -174,16 +115,15 @@ def _gen_dermatome_area_to_level(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     d = random.choice(DERMATOMES)
-    correct = d["level"]
     distractors = [x["level"] for x in DERMATOMES if x["level"] != d["level"]]
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(d["level"], distractors)
     except ValueError:
         return None
     return {
         "type": "dermatome_area_to_level",
         "category": "Dermatomes",
-        "prompt": f"Sensation over the {d['area'].lower()} is tested at which dermatome level?",
+        "prompt": f"Per the Neuro PDF, sensation over the {d['area'].lower()} is tested at which dermatome level?",
         "choices": choices,
         "answer_index": idx,
         "explanation": f"{d['area']} → {d['level']}.",
@@ -199,28 +139,34 @@ def _gen_myotome_action_to_roots(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     m = random.choice(MYOTOMES)
-    correct = m["roots"]
     distractors = list({x["roots"] for x in MYOTOMES if x["roots"] != m["roots"]})
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(m["roots"], distractors)
     except ValueError:
         return None
     return {
         "type": "myotome_action_to_roots",
         "category": "Myotomes",
-        "prompt": f"Which nerve root(s) are primarily tested by {m['action'].lower()}?",
+        "prompt": f"Per the Neuro PDF, which nerve root(s) are tested by {m['action'].lower()}?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{m['action']} — {m['muscle']} — {m['roots']}.",
+        "explanation": f"{m['action']} → {m['roots']}.",
     }
 
 
 def _gen_myotome_roots_to_action(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
-    m = random.choice(MYOTOMES)
-    correct = m["action"]
-    distractors = list({x["action"] for x in MYOTOMES if x["action"] != m["action"]})
+    # Pick a root grouping that has exactly one unambiguous action
+    groupings: dict[str, list[str]] = {}
+    for m in MYOTOMES:
+        groupings.setdefault(m["roots"], []).append(m["action"])
+    unique_roots = [(r, acts) for r, acts in groupings.items() if len(acts) == 1]
+    if not unique_roots:
+        return None
+    roots, acts = random.choice(unique_roots)
+    correct = acts[0]
+    distractors = [m["action"] for m in MYOTOMES if m["action"] != correct]
     try:
         choices, idx = _shuffled_choices(correct, distractors)
     except ValueError:
@@ -228,10 +174,10 @@ def _gen_myotome_roots_to_action(exam_slug: str) -> Optional[Question]:
     return {
         "type": "myotome_roots_to_action",
         "category": "Myotomes",
-        "prompt": f"Which muscle action is primarily mediated by the {m['roots']} nerve root(s)?",
+        "prompt": f"Per the Neuro PDF, the nerve root grouping {roots} primarily mediates which action?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{m['roots']} — {m['muscle']} — {m['action']}.",
+        "explanation": f"{roots} → {correct}.",
     }
 
 
@@ -239,18 +185,15 @@ def _gen_dtr_roots(exam_slug: str) -> Optional[Question]:
     if exam_slug != "neurologic":
         return None
     d = random.choice(DTRS)
-    correct = d["roots"]
     distractors = list({x["roots"] for x in DTRS if x["roots"] != d["roots"]})
-    # Add non-DTR roots as plausible distractors
-    distractors.extend(["C4, C5", "L4, L5", "C7, C8", "T12, L1"])
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(d["roots"], distractors)
     except ValueError:
         return None
     return {
         "type": "dtr_roots",
         "category": "Deep tendon reflexes",
-        "prompt": f"The {d['name'].lower()} tests which nerve root(s)?",
+        "prompt": f"Per the Neuro PDF, the {d['name'].lower()} tests which nerve root(s)?",
         "choices": choices,
         "answer_index": idx,
         "explanation": f"{d['name']} → {d['roots']}.",
@@ -258,7 +201,7 @@ def _gen_dtr_roots(exam_slug: str) -> Optional[Question]:
 
 
 # ---------------------------------------------------------------------------
-# Special-test generators (MSK exams)
+# Special-test generators (MSK exams + Neuro special tests)
 # ---------------------------------------------------------------------------
 
 
@@ -268,98 +211,66 @@ def _exam_tests(slug: str) -> list[dict]:
 
 def _gen_special_test_purpose(exam_slug: str) -> Optional[Question]:
     tests = _exam_tests(exam_slug)
-    if len(tests) < 4:
-        # Fall back to cross-MSK pool so upper/lower/spine can still produce questions.
-        tests = SPECIAL_TESTS
+    if len(tests) < 2:
+        return None
     t = random.choice(tests)
-    if t["exam"] != exam_slug and random.random() > 0.3:
-        # Prefer exam-specific tests when possible
-        in_exam = _exam_tests(exam_slug)
-        if in_exam:
-            t = random.choice(in_exam)
-    correct = t["assesses"]
-    distractors = list({x["assesses"] for x in SPECIAL_TESTS if x["assesses"] != t["assesses"]})
+    distractors = list({x["purpose"] for x in SPECIAL_TESTS if x["purpose"] != t["purpose"]})
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(t["purpose"], distractors)
     except ValueError:
         return None
     return {
         "type": "special_test_purpose",
         "category": "Special tests",
-        "prompt": f"The {t['name']} evaluates which injury or condition?",
+        "prompt": f"Per the PDF, the {t['name']} is used to assess:",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{t['name']} ({t['joint']}) — {t['technique']}. Assesses: {t['assesses']}.",
+        "explanation": f"{t['name']} ({t['section']}) → {t['purpose']}.",
     }
 
 
 def _gen_special_test_by_purpose(exam_slug: str) -> Optional[Question]:
     tests = _exam_tests(exam_slug)
-    if len(tests) < 4:
-        tests = SPECIAL_TESTS
+    if len(tests) < 2:
+        return None
     t = random.choice(tests)
-    correct = t["name"]
     distractors = [x["name"] for x in SPECIAL_TESTS if x["name"] != t["name"]]
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(t["name"], distractors)
     except ValueError:
         return None
     return {
         "type": "special_test_by_purpose",
         "category": "Special tests",
-        "prompt": f"Which special test is used to assess {t['assesses'].lower()}?",
+        "prompt": f"Per the PDF, which special test is used to assess {t['purpose'].lower()}?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{t['name']} — {t['technique']}.",
+        "explanation": f"{t['name']} ({t['section']}).",
     }
 
 
-def _gen_special_test_joint(exam_slug: str) -> Optional[Question]:
+def _gen_special_test_section(exam_slug: str) -> Optional[Question]:
     tests = _exam_tests(exam_slug)
-    if len(tests) < 4:
-        tests = SPECIAL_TESTS
+    if len(tests) < 2:
+        return None
     t = random.choice(tests)
-    correct = t["joint"]
-    distractors = list({x["joint"] for x in SPECIAL_TESTS if x["joint"] != t["joint"]})
-    # Add plausible anatomic distractors
-    distractors.extend(["Foot", "Cervical spine", "Thumb"])
+    distractors = list({x["section"] for x in SPECIAL_TESTS if x["section"] != t["section"]})
     try:
-        choices, idx = _shuffled_choices(correct, distractors)
+        choices, idx = _shuffled_choices(t["section"], distractors)
     except ValueError:
         return None
     return {
-        "type": "special_test_joint",
+        "type": "special_test_section",
         "category": "Special tests",
-        "prompt": f"The {t['name']} is performed as part of which joint exam?",
+        "prompt": f"Per the PDF, the {t['name']} is performed under which part of the exam?",
         "choices": choices,
         "answer_index": idx,
-        "explanation": f"{t['name']} → {t['joint']}. {t['technique']}.",
-    }
-
-
-def _gen_special_test_technique(exam_slug: str) -> Optional[Question]:
-    tests = _exam_tests(exam_slug)
-    if len(tests) < 4:
-        tests = SPECIAL_TESTS
-    t = random.choice(tests)
-    correct = t["technique"]
-    distractors = [x["technique"] for x in SPECIAL_TESTS if x["technique"] != t["technique"]]
-    try:
-        choices, idx = _shuffled_choices(correct, distractors)
-    except ValueError:
-        return None
-    return {
-        "type": "special_test_technique",
-        "category": "Special tests",
-        "prompt": f"How is the {t['name']} performed?",
-        "choices": choices,
-        "answer_index": idx,
-        "explanation": f"{t['name']} — assesses {t['assesses']}.",
+        "explanation": f"{t['name']} → {t['section']}.",
     }
 
 
 # ---------------------------------------------------------------------------
-# KEY_FACTS generator (all exams)
+# KEY_FACTS generator
 # ---------------------------------------------------------------------------
 
 
@@ -368,11 +279,8 @@ def _gen_key_fact(exam_slug: str) -> Optional[Question]:
     if not facts:
         return None
     fact = random.choice(facts)
-    distractors = list(fact["distractors"])
-    if len(distractors) < 3:
-        return None
     try:
-        choices, idx = _shuffled_choices(fact["answer"], distractors)
+        choices, idx = _shuffled_choices(fact["answer"], list(fact["distractors"]))
     except ValueError:
         return None
     return {
@@ -400,12 +308,10 @@ _STEP_OK_RE = re.compile(r"^[A-Z0-9(\"]")
 
 
 def _ok_step(item: str) -> bool:
-    """Filter out obvious PDF-extraction fragments so we only quiz clean items."""
     if not (20 <= len(item) <= 180):
         return False
     if not _STEP_OK_RE.match(item):
         return False
-    # Must be mostly alphabetic
     letters = sum(1 for c in item if c.isalpha())
     if letters < 12:
         return False
@@ -413,7 +319,6 @@ def _ok_step(item: str) -> bool:
 
 
 def _gen_step_to_subsection(exam_slug: str, exam: dict) -> Optional[Question]:
-    """'Which subsection does this step belong to?' — requires multiple real subsections."""
     subs_with_steps = []
     for sec, sub in _iter_subsections(exam):
         good = [it for it in sub.get("items", []) if _ok_step(it)]
@@ -444,7 +349,6 @@ def _gen_step_to_subsection(exam_slug: str, exam: dict) -> Optional[Question]:
 
 
 def _gen_step_not_in_subsection(exam_slug: str, exam: dict) -> Optional[Question]:
-    """'Which of these is NOT part of subsection X?' — 3 target items + 1 foreign."""
     subs_with_steps = []
     for sec, sub in _iter_subsections(exam):
         good = [it for it in sub.get("items", []) if _ok_step(it)]
@@ -454,7 +358,6 @@ def _gen_step_not_in_subsection(exam_slug: str, exam: dict) -> Optional[Question
         return None
     sec, sub, good = random.choice(subs_with_steps)
     three = random.sample(good, 3)
-    # Distractor: item from another subsection in the same exam.
     foreign_pool: list[str] = []
     for osec, osub in _iter_subsections(exam):
         if osub["name"] == sub["name"]:
@@ -481,37 +384,34 @@ def _gen_step_not_in_subsection(exam_slug: str, exam: dict) -> Optional[Question
 # Generator registry — which generators apply to which exams
 # ---------------------------------------------------------------------------
 
-# Generators that take only the exam slug
 _SLUG_GENERATORS: dict[str, list[Callable[[str], Optional[Question]]]] = {
     "neurologic": [
-        _gen_cn_test_to_number,
-        _gen_cn_number_to_test,
-        _gen_cn_kind,
+        _gen_cn_test_to_label,
+        _gen_cn_label_to_test,
         _gen_dermatome_level_to_area,
         _gen_dermatome_area_to_level,
         _gen_myotome_action_to_roots,
         _gen_myotome_roots_to_action,
         _gen_dtr_roots,
+        _gen_special_test_purpose,
+        _gen_special_test_by_purpose,
         _gen_key_fact,
     ],
     "lower-extremity-msk": [
         _gen_special_test_purpose,
         _gen_special_test_by_purpose,
-        _gen_special_test_joint,
-        _gen_special_test_technique,
+        _gen_special_test_section,
         _gen_key_fact,
     ],
     "upper-extremity-msk": [
         _gen_special_test_purpose,
         _gen_special_test_by_purpose,
-        _gen_special_test_joint,
-        _gen_special_test_technique,
+        _gen_special_test_section,
         _gen_key_fact,
     ],
     "spine-msk": [
         _gen_special_test_purpose,
         _gen_special_test_by_purpose,
-        _gen_special_test_joint,
         _gen_key_fact,
     ],
     "breast-axilla": [_gen_key_fact],
@@ -519,7 +419,6 @@ _SLUG_GENERATORS: dict[str, list[Callable[[str], Optional[Question]]]] = {
     "male-gu": [_gen_key_fact],
 }
 
-# Generators that also receive the parsed exam dict
 _EXAM_GENERATORS: list[Callable[[str, dict], Optional[Question]]] = [
     _gen_step_to_subsection,
     _gen_step_not_in_subsection,
@@ -527,18 +426,13 @@ _EXAM_GENERATORS: list[Callable[[str, dict], Optional[Question]]] = [
 
 
 def generate_quiz(exam_slug: str, exam: dict, count: int) -> list[Question]:
-    """Generate a mixed quiz of `count` questions for the given exam.
-
-    Tries each generator; if a generator fails (returns None or raises), it's
-    skipped. Loops until enough unique prompts are collected or attempts max out.
-    """
     slug_gens = list(_SLUG_GENERATORS.get(exam_slug, []))
     exam_gens = list(_EXAM_GENERATORS)
 
     questions: list[Question] = []
     seen_prompts: set[str] = set()
     attempts = 0
-    max_attempts = count * 12
+    max_attempts = count * 15
 
     while len(questions) < count and attempts < max_attempts:
         attempts += 1
@@ -555,10 +449,8 @@ def generate_quiz(exam_slug: str, exam: dict, count: int) -> list[Question]:
             q = None
         if not q:
             continue
-        # Deduplicate by prompt text
         if q["prompt"] in seen_prompts:
             continue
-        # Validate shape
         if not q.get("choices") or len(q["choices"]) != 4:
             continue
         if len(set(q["choices"])) != 4:

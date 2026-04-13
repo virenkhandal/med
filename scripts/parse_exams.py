@@ -182,8 +182,19 @@ def parse_pdf(pdf_path: Path) -> list[dict]:
                             current_major = ensure_major(clean_label(name))
                             current_sub = None
                             continue
-                        # Non-uppercase single-col row → treat as subsection label
-                        # and attach to a default major.
+                        # Long sentence-like rows are checklist items, not labels
+                        # (e.g., "Empty Can test (supraspinatus)- patient elevates...").
+                        # These appear in Special Tests sections where each test spans
+                        # the entire row width in the PDF.
+                        if len(name) > 60 and " " in name:
+                            if current_major is None:
+                                current_major = ensure_major("General")
+                            if current_sub is None:
+                                current_sub = ensure_sub(current_major, "Steps")
+                            for item in split_items(name):
+                                current_sub["items"].append(item)
+                            continue
+                        # Otherwise it's a subsection label for a default major.
                         if current_major is None:
                             current_major = ensure_major("General")
                         current_sub = ensure_sub(current_major, clean_label(name))

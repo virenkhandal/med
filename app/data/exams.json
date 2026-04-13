@@ -248,6 +248,13 @@
         "name": "Bimanual Examination",
         "subsections": [
           {
+            "name": "Steps",
+            "items": [
+              "Apply a small amount of lubrication to the index and middle fingers of the dominant hand",
+              "While in the standing position, insert the index and middle fingers of the dominant hand into the vagina. Place the other hand on the abdomen proximal to the pubis."
+            ]
+          },
+          {
             "name": "Palpation",
             "items": [
               "Vaginal walls for:",
@@ -312,7 +319,7 @@
         ]
       }
     ],
-    "item_count": 78
+    "item_count": 80
   },
   "lower-extremity-msk": {
     "slug": "lower-extremity-msk",
@@ -322,6 +329,12 @@
       {
         "name": "Starting The Patient Encounter",
         "subsections": [
+          {
+            "name": "Steps",
+            "items": [
+              "Introduces self to patient using first and last name and role."
+            ]
+          },
           {
             "name": "General Survey",
             "items": [
@@ -553,13 +566,14 @@
           {
             "name": "Thompson Test (Assess the integrity of the Achilles tendon)",
             "items": [
-              "Place the patient prone with the knee and ankle flexed at 90\u00b0, or, alternatively, ask the patient to kneel on a chair. Squeeze the calf and watch for plantar flexion at the ankle. Absent plantar flexion is a positive test for Achilles tendon rupture."
+              "Place the patient prone with the knee and ankle flexed at 90\u00b0, or, alternatively, ask the patient to kneel on a chair. Squeeze the calf and watch for plantar flexion at the ankle. Absent plantar flexion is a positive test for Achilles tendon rupture.",
+              "Consider whether a neurological examination is necessary when completing a musculoskeletal examination."
             ]
           }
         ]
       }
     ],
-    "item_count": 89
+    "item_count": 91
   },
   "upper-extremity-msk": {
     "slug": "upper-extremity-msk",
@@ -592,12 +606,8 @@
               "Acromioclavicular joint",
               "Coracoid process Ibeneath davide and anteriorto acromion)",
               "Greater tubercle 12 inch above IM inj site)",
-              "Biceps tendon at bicipital groove (2 inch above armpitt"
-            ]
-          },
-          {
-            "name": "Flexion extension AbductionAdduction InternalRotation External Rotation",
-            "items": [
+              "Biceps tendon at bicipital groove (2 inch above armpitt",
+              "Flexion extension AbductionAdduction InternalRotation External Rotation",
               "Subacromial & subdeltoid bursae Jabove greatertuberde-tip of shoulder) liftpatient's elbow posteriorly",
               "-underacromionunder supraunder infra \"2Findspireof scapula",
               "Shoulder muscles (SITS-supraspinatus, infraspinatus, teres minor, subscapularis) .R seo pll af rain tege dr es lta ob idov ae nt do find subscapularis",
@@ -610,6 +620,17 @@
               "Flexion/Extension Raise arm forward over head/pull arm backwards",
               "Abduction/Adduction pull arm toside",
               "Internal/External Rotation Hold elbow steady and \"show me how bigfish was\"(external)"
+            ]
+          },
+          {
+            "name": "SHOULDER Special Tests",
+            "items": [
+              "Empty Can test (supraspinatus)- patient elevates arms to 90 degrees and internally rotates the arms with the thumbs pointed down. Ask patient to resist as you apply downward pressure to the forearms",
+              "Infraspinatus test- Patient holds arm at their side with elbow flexed to 90 degrees and then externally rotates shoulder against resistance",
+              "Subscapularis test-patient holds arm at their side with elbow flexed to 90 degrees and then internally rotates shoulder against resistance",
+              "Crossed body adduction test (acromioclavicular joint)- Adduct the patient's arm across the chest.",
+              "Neer test (subacromial impingement)-Forward flex patient\u2019s arm while depressing scapula or acromion -",
+              "Hawkins test (subacromial impingement)-Abduct patient\u2019s shoulder to 90 degrees with elbow flexed at 90 degrees and internally rotate shoulder -"
             ]
           }
         ]
@@ -673,9 +694,25 @@
             ]
           }
         ]
+      },
+      {
+        "name": "Special Tests",
+        "subsections": [
+          {
+            "name": "Steps",
+            "items": [
+              "Tinel sign (for Carpal tunnel syndrome)-Examiner taps volar aspect of wrist between thenar and hypothenar proximal eminences",
+              "Phalen test (for Carpal tunnel syndrome)-Patient holds wrists fully flexed with dorsal surfaces held together for 1 minute",
+              "Hand grip stength- Ask the patient to grasp your second and third fingers as tightly as possible. ulnarnerve test",
+              "Thumb tenosynovitis (Finkelstein) test- Patient grasps the thumb against the pam and then moves the wrist toward the midline in ulnar deviation. Complete bilaterally for campison. Positive sign- pain with ulnar deviation",
+              "Thumb Abduction test - patient abducts thumb against resistance Carpal Tunnel",
+              "Consider whether a neurological examination is necessary when completing a musculosketal examination."
+            ]
+          }
+        ]
       }
     ],
-    "item_count": 43
+    "item_count": 56
   },
   "spine-msk": {
     "slug": "spine-msk",
@@ -724,15 +761,24 @@
         "name": "Special Tests",
         "subsections": [
           {
+            "name": "Steps",
+            "items": [
+              "Spurling test- Ask patient to rotate the head to one side then tilt head back. Repeat on the other side. Positive sign-pain in posterior neck on ipsilateral side. ->Cervical radiculopathy"
+            ]
+          },
+          {
             "name": "Sciatica Straight-leg raise - patient lies supine with neck slightly flexed, leg is raised with knee extended. Performs bilaterally. lumbarradiculo",
             "items": [
-              "pathy"
+              "pathy",
+              "Leg length measurement - leg length is measured from the anterior iliac spine to the medial malleolus crossing the knee on the medial side. Performs bilaterally. Lumbar scoliosis ,lowbackpain,SI joint pain,hipostroarthritis ,stressfX,",
+              "Cervical spine strength- Flexion, Extension, Rotation (b/l), Lateral bending (b/l) *Consider for a patient with neck pain",
+              "Scoliosis \u2013 have patient stand with knees straight and flex forward at the waist. Inspect for spine curvature, asymmetry of the shoulders, shoulder blades, and hips from anterior and posterior"
             ]
           }
         ]
       }
     ],
-    "item_count": 19
+    "item_count": 23
   },
   "male-gu": {
     "slug": "male-gu",
@@ -871,6 +917,12 @@
       {
         "name": "Starting The Exam",
         "subsections": [
+          {
+            "name": "Steps",
+            "items": [
+              "Introduces self to patient using first and last name and role. Wash/Sanitize hands Don appropriate PPE Patient is wearing gown, open to back"
+            ]
+          },
           {
             "name": "General Survey",
             "items": [
@@ -1154,6 +1206,6 @@
         ]
       }
     ],
-    "item_count": 95
+    "item_count": 96
   }
 }

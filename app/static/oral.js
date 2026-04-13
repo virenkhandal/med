@@ -3,6 +3,21 @@ const stopRec = document.getElementById('stopRec');
 const recStatus = document.getElementById('recStatus');
 const transcriptEl = document.getElementById('transcript');
 const reportEl = document.getElementById('report');
+const checklistEl = document.getElementById('checklist');
+const toggleChecklistBtn = document.getElementById('toggleChecklist');
+const toggleLabel = toggleChecklistBtn ? toggleChecklistBtn.querySelector('.toggle-label') : null;
+const checklistPanel = toggleChecklistBtn ? toggleChecklistBtn.closest('.checklist-panel') : null;
+
+if (toggleChecklistBtn && checklistEl) {
+  toggleChecklistBtn.addEventListener('click', () => {
+    const hidden = checklistEl.classList.toggle('checklist-hidden');
+    const revealed = !hidden;
+    toggleChecklistBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false');
+    toggleChecklistBtn.setAttribute('aria-label', revealed ? 'Hide checklist' : 'Reveal checklist');
+    if (toggleLabel) toggleLabel.textContent = revealed ? 'Hide' : 'Reveal';
+    if (checklistPanel) checklistPanel.classList.toggle('revealed', revealed);
+  });
+}
 
 let mediaRecorder = null;
 let audioChunks = [];

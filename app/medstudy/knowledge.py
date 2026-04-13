@@ -1,418 +1,399 @@
 """Hand-curated knowledge base for the med-study PE exams.
 
-Each section encodes structured, fact-level knowledge pulled directly from the
-PDFs in /exams. Question generators in `questions.py` use this to produce
-quizzes with real clinical content — not just "does this item belong to exam
-X".
+PDF-faithful — every fact in this file is directly traceable to the PDFs in
+the `exams/` directory. If a fact isn't literally in the source PDF, it
+doesn't go here. No inferred techniques, no textbook findings, no non-PDF
+distractors.
 """
 
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
-# Cranial nerves
+# Cranial nerves — taken from Neuro Checklist.pdf
+#
+# `label`  — how the PDF groups the nerve(s) (some are combined in the PDF)
+# `tests`  — each bullet that appears under that CN label in the PDF
 # ---------------------------------------------------------------------------
 
 CRANIAL_NERVES: list[dict] = [
     {
-        "num": "I",
-        "name": "Olfactory",
-        "kind": "sensory",
+        "label": "CN I — Olfactory",
         "tests": [
-            "Ask patient to occlude one nostril and identify a familiar smell",
+            "Ask patient to occlude one nostril and identify smell bilaterally",
         ],
-        "finding": "anosmia (loss of smell)",
     },
     {
-        "num": "II",
-        "name": "Optic",
-        "kind": "sensory",
+        "label": "CN II — Optic",
         "tests": [
-            "Assess visual acuity using a Snellen pocket chart at 14 inches",
-            "Assess visual fields by confrontation",
-            "Perform a fundoscopic exam (optic disc, vessels, retina)",
+            "Assess visual acuity using Snellen pocket chart at 14 in",
+            "Report findings for OU, OD, OS",
+            "Visual fields by confrontation",
+            "Perform a fundoscopic exam bilaterally (optic disc, vessels, retinal pallor, hemorrhages)",
         ],
-        "finding": "decreased acuity, visual field defect, or abnormal fundoscopic findings",
     },
     {
-        "num": "III",
-        "name": "Oculomotor",
-        "kind": "motor",
+        "label": "CN III, IV, VI — Oculomotor, Trochlear & Abducens",
         "tests": [
-            "Inspect pupil size and shape",
-            "Assess direct and consensual pupillary reaction to light",
-            "Assess pupillary convergence and accommodation",
-            "Assess extraocular movements",
+            "Inspect size and shape of pupils bilaterally for asymmetry and size",
+            "Assess direct and consensual pupillary reaction bilaterally using a light source",
+            "Assess extraocular movements bilaterally observing for nystagmus, smooth pursuit, and ptosis",
+            "Assess pupillary convergence and lens accommodation bilaterally",
         ],
-        "finding": "ptosis, mydriasis, 'down and out' eye position",
     },
     {
-        "num": "IV",
-        "name": "Trochlear",
-        "kind": "motor",
-        "tests": [
-            "Assess extraocular movements (superior oblique — eye down and in)",
-        ],
-        "finding": "vertical diplopia worse on downgaze",
-    },
-    {
-        "num": "V",
-        "name": "Trigeminal",
-        "kind": "both",
+        "label": "CN V — Trigeminal (Sensory & Motor)",
         "tests": [
             "Palpate temporal and masseter muscles as patient clenches teeth",
-            "Assess light-touch sensation of the face in V1, V2, and V3 distributions",
+            "Assess sensation to light touch of the face in V1, V2, V3 distribution",
         ],
-        "finding": "facial numbness or jaw weakness",
     },
     {
-        "num": "VI",
-        "name": "Abducens",
-        "kind": "motor",
+        "label": "CN VII — Facial",
         "tests": [
-            "Assess lateral gaze of each eye",
+            "Observe face for asymmetry",
+            "Ask patient to raise eyebrows, frown, close eyes while you try to open them, smile showing teeth, and puff out cheeks",
         ],
-        "finding": "inability to abduct the affected eye",
     },
     {
-        "num": "VII",
-        "name": "Facial",
-        "kind": "motor",
+        "label": "CN VIII — Acoustic",
         "tests": [
-            "Observe face for asymmetry at rest",
-            "Ask patient to raise eyebrows, frown, close eyes against resistance",
-            "Ask patient to smile showing teeth and puff out cheeks",
-        ],
-        "finding": "unilateral facial droop, inability to close eye",
-    },
-    {
-        "num": "VIII",
-        "name": "Acoustic (Vestibulocochlear)",
-        "kind": "sensory",
-        "tests": [
-            "Assess hearing by rubbing thumb and forefinger together 2 inches from each ear",
-            "Perform a whisper test bilaterally",
+            "Assess hearing by rubbing thumb and forefinger together 2 inches from each ear, or whisper test",
             "Verbalize Weber and Rinne tests if hearing loss is detected",
         ],
-        "finding": "unilateral hearing loss",
     },
     {
-        "num": "IX",
-        "name": "Glossopharyngeal",
-        "kind": "both",
+        "label": "CN IX & X — Glossopharyngeal & Vagus",
         "tests": [
-            "Inspect symmetric rise of the soft palate with 'ahh'",
-            "Verbalize testing the gag reflex with a tongue blade",
+            "Inspect symmetric rise of soft palate and that uvula is at midline when patient says 'ahh'",
+            "Verbalize testing the gag reflex using a tongue blade",
         ],
-        "finding": "uvula deviation away from lesion",
     },
     {
-        "num": "X",
-        "name": "Vagus",
-        "kind": "both",
+        "label": "CN XI — Spinal Accessory",
         "tests": [
-            "Inspect symmetric rise of the soft palate with 'ahh'",
-            "Verbalize testing the gag reflex with a tongue blade",
+            "Assess sternocleidomastoid strength against resistance bilaterally (head/neck rotation)",
+            "Assess strength of trapezii against resistance bilaterally (shoulder shrug)",
         ],
-        "finding": "hoarseness, dysphagia, palatal asymmetry",
     },
     {
-        "num": "XI",
-        "name": "Spinal Accessory",
-        "kind": "motor",
+        "label": "CN XII — Hypoglossal",
         "tests": [
-            "Assess sternocleidomastoid strength against resistance (head/neck rotation)",
-            "Assess trapezius strength against resistance (shoulder shrug)",
+            "Inspect tongue for fasciculations or atrophy",
+            "Assess that the tongue is at midline when the patient sticks out the tongue",
         ],
-        "finding": "weakness of shoulder shrug or head rotation",
-    },
-    {
-        "num": "XII",
-        "name": "Hypoglossal",
-        "kind": "motor",
-        "tests": [
-            "Inspect the tongue for fasciculations or atrophy",
-            "Assess that the tongue is midline when protruded",
-        ],
-        "finding": "tongue deviation toward the side of the lesion",
     },
 ]
 
 
 # ---------------------------------------------------------------------------
-# Dermatomes (from the Neuro checklist)
+# Dermatomes — taken verbatim from Neuro Checklist.pdf "Sensory" section
 # ---------------------------------------------------------------------------
 
 DERMATOMES: list[dict] = [
     {"level": "C5", "area": "Lateral upper arm"},
-    {"level": "C6", "area": "Thumb / lateral forearm"},
+    {"level": "C6", "area": "Lateral forearm, index finger, and thumb"},
     {"level": "C7", "area": "Middle finger"},
-    {"level": "C8", "area": "Little finger / medial forearm"},
+    {"level": "C8", "area": "Medial forearm, ring, and little finger"},
     {"level": "T1", "area": "Medial upper arm"},
-    {"level": "T4", "area": "Nipple line"},
-    {"level": "T10", "area": "Umbilicus"},
-    {"level": "L1", "area": "Proximal 1/3 of thigh / inguinal region"},
-    {"level": "L2", "area": "Middle 1/3 of anterior thigh"},
-    {"level": "L3", "area": "Distal 1/3 of thigh / above the knee"},
-    {"level": "L4", "area": "Medial lower leg / medial malleolus"},
-    {"level": "L5", "area": "Dorsum of foot / great toe"},
-    {"level": "S1", "area": "Lateral foot / small toe"},
+    {"level": "T10", "area": "Umbilical level"},
+    {"level": "L1", "area": "Proximal 1/3 of thigh"},
+    {"level": "L2", "area": "Middle 1/3 of thigh"},
+    {"level": "L3", "area": "Distal 1/3 of thigh"},
+    {"level": "L4", "area": "Medial lower leg, medial great toe"},
+    {"level": "L5", "area": "Lateral lower leg, toes 2-4"},
+    {"level": "S1", "area": "Lateral foot, lateral small toe"},
 ]
 
 
 # ---------------------------------------------------------------------------
-# Myotomes (nerve root → muscle action)
+# Myotomes (nerve root → muscle action) — verbatim from Neuro "Muscle Strength"
+# subsection of the PDF. The PDF lists multi-root groupings; each entry below
+# is exactly one line from that section.
 # ---------------------------------------------------------------------------
 
 MYOTOMES: list[dict] = [
-    {"roots": "C5, C6", "action": "Shoulder abduction", "muscle": "Deltoid"},
-    {"roots": "C5, C6", "action": "Elbow flexion", "muscle": "Biceps brachii"},
-    {"roots": "C6, C7, C8", "action": "Wrist extension", "muscle": "Radial wrist extensors"},
-    {"roots": "C6, C7, C8", "action": "Elbow extension", "muscle": "Triceps brachii"},
-    {"roots": "C7, C8", "action": "Digit extension", "muscle": "Finger extensors (radial nerve)"},
-    {"roots": "C8, T1", "action": "Digit abduction", "muscle": "Interossei (ulnar nerve)"},
-    {"roots": "C8, T1", "action": "Thumb abduction", "muscle": "Abductor pollicis brevis (median nerve)"},
-    {"roots": "L1, L2", "action": "Hip flexion", "muscle": "Iliopsoas"},
-    {"roots": "L3, L4", "action": "Knee extension", "muscle": "Quadriceps"},
-    {"roots": "L4", "action": "Ankle dorsiflexion", "muscle": "Tibialis anterior"},
-    {"roots": "L5", "action": "Great toe extension", "muscle": "Extensor hallucis longus"},
-    {"roots": "S1", "action": "Ankle plantarflexion", "muscle": "Gastrocnemius / soleus"},
-    {"roots": "S1", "action": "Hip extension", "muscle": "Gluteus maximus"},
+    {"action": "Shoulder abduction", "roots": "C5, C6"},
+    {"action": "Elbow flexion", "roots": "C5, C6"},
+    {"action": "Elbow extension", "roots": "C6, C7, C8"},
+    {"action": "Wrist extension", "roots": "C6, C7, C8, Radial Nerve"},
+    {"action": "Digit abduction", "roots": "C8, T1, Ulnar Nerve"},
+    {"action": "Thumb abduction", "roots": "C8, T1, Median Nerve"},
+    {"action": "Digit extension", "roots": "C7, C8, radial nerve"},
+    {"action": "Hip flexion", "roots": "L2, L3, L4"},
+    {"action": "Hip extension", "roots": "S1"},
+    {"action": "Hip adduction", "roots": "L2, L3, L4"},
+    {"action": "Hip abduction", "roots": "L4, L5, S1"},
+    {"action": "Knee flexion", "roots": "L5, S1, S2"},
+    {"action": "Knee extension", "roots": "L2, L3, L4"},
+    {"action": "Ankle dorsiflexion", "roots": "L4, L5"},
+    {"action": "Ankle plantar flexion", "roots": "S1"},
 ]
 
 
 # ---------------------------------------------------------------------------
-# Deep tendon reflexes
+# Deep tendon reflexes — verbatim from Neuro "Deep Tendon Reflexes" subsection
 # ---------------------------------------------------------------------------
 
 DTRS: list[dict] = [
     {"name": "Biceps reflex", "roots": "C5, C6"},
-    {"name": "Brachioradialis reflex", "roots": "C5, C6"},
     {"name": "Triceps reflex", "roots": "C6, C7"},
-    {"name": "Patellar (knee) reflex", "roots": "L2, L3, L4"},
-    {"name": "Achilles (ankle) reflex", "roots": "S1"},
+    {"name": "Brachioradialis reflex", "roots": "C5, C6"},
+    {"name": "Patellar reflex", "roots": "L2, L3, L4"},
+    {"name": "Ankle jerk (Achilles tendon)", "roots": "S1"},
 ]
 
 
 # ---------------------------------------------------------------------------
-# Special tests (MSK — LE / UE / Spine)
+# Special tests — taken verbatim from the LE, UE, Spine, and Neuro PDFs.
+#
+# `purpose`  — the parenthetical after the test name in the PDF (e.g.
+#              "(meniscal tear)", "(ACL tear/laxity)")
+# `exam`     — which exam the test lives in
+# `section`  — the major section / joint where it appears in the PDF
 # ---------------------------------------------------------------------------
 
 SPECIAL_TESTS: list[dict] = [
-    # Lower extremity — knee
-    {
-        "name": "Lachman test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "ACL tear / laxity",
-        "technique": "With knee flexed ~30°, stabilize the femur and pull the tibia anteriorly",
-    },
-    {
-        "name": "Anterior drawer test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "ACL tear / laxity",
-        "technique": "With knee flexed 90° and foot stabilized, pull the tibia anteriorly",
-    },
-    {
-        "name": "Posterior drawer test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "PCL tear / laxity",
-        "technique": "With knee flexed 90° and foot stabilized, push the tibia posteriorly",
-    },
-    {
-        "name": "McMurray test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "Meniscal tear",
-        "technique": "Flex the knee, externally or internally rotate the tibia, then extend",
-    },
-    {
-        "name": "Valgus stress test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "MCL (medial collateral ligament) injury",
-        "technique": "Apply valgus force to the knee at 0° and 30° of flexion",
-    },
-    {
-        "name": "Varus stress test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "LCL (lateral collateral ligament) injury",
-        "technique": "Apply varus force to the knee at 0° and 30° of flexion",
-    },
-    {
-        "name": "Bulge sign",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "Minor knee effusion",
-        "technique": "Milk fluid medially then tap the lateral knee; watch for a bulge medially",
-    },
-    {
-        "name": "Ballottement test",
-        "exam": "lower-extremity-msk",
-        "joint": "Knee",
-        "assesses": "Major knee effusion",
-        "technique": "Press the patella downward against the femur; a 'tap' indicates effusion",
-    },
-    {
-        "name": "Thompson test",
-        "exam": "lower-extremity-msk",
-        "joint": "Ankle",
-        "assesses": "Achilles tendon rupture",
-        "technique": "With patient prone, squeeze the calf and watch for absent plantarflexion",
-    },
-    # Lower extremity — hip
+    # Lower extremity
     {
         "name": "FABER test",
         "exam": "lower-extremity-msk",
-        "joint": "Hip",
-        "assesses": "SI joint / hip pathology (groin strain)",
-        "technique": "Flex, Abduct, and Externally Rotate the hip ('figure-4')",
+        "section": "Hip",
+        "purpose": "Groin strain",
     },
     {
         "name": "Trendelenburg test",
         "exam": "lower-extremity-msk",
-        "joint": "Hip",
-        "assesses": "Gluteus medius weakness",
-        "technique": "Ask patient to stand on one leg; contralateral pelvis drop is positive",
+        "section": "Hip",
+        "purpose": "Gluteal weakness",
+    },
+    {
+        "name": "McMurray test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "Meniscal tear",
+    },
+    {
+        "name": "Lachman test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "ACL tear / laxity",
+    },
+    {
+        "name": "Anterior drawer test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "ACL tear / laxity",
+    },
+    {
+        "name": "Posterior drawer test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "PCL tear / laxity",
+    },
+    {
+        "name": "Valgus stress test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "MCL",
+    },
+    {
+        "name": "Varus stress test",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "LCL",
+    },
+    {
+        "name": "Bulge sign",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "Assess knee for minor effusion",
+    },
+    {
+        "name": "Ballottement test (Balloon sign)",
+        "exam": "lower-extremity-msk",
+        "section": "Knee",
+        "purpose": "Assess knee for major effusion",
+    },
+    {
+        "name": "Thompson test",
+        "exam": "lower-extremity-msk",
+        "section": "Ankle",
+        "purpose": "Assess the integrity of the Achilles tendon",
     },
     # Upper extremity — shoulder
     {
         "name": "Empty can test",
         "exam": "upper-extremity-msk",
-        "joint": "Shoulder",
-        "assesses": "Supraspinatus tendon / tear",
-        "technique": "Arms to 90°, internally rotated with thumbs down; resist downward pressure",
+        "section": "Shoulder",
+        "purpose": "Supraspinatus",
     },
     {
         "name": "Infraspinatus test",
         "exam": "upper-extremity-msk",
-        "joint": "Shoulder",
-        "assesses": "Infraspinatus tendon / tear",
-        "technique": "Elbow at side, flexed 90°; patient externally rotates against resistance",
+        "section": "Shoulder",
+        "purpose": "Infraspinatus",
     },
     {
-        "name": "Subscapularis test (lift-off)",
+        "name": "Subscapularis test",
         "exam": "upper-extremity-msk",
-        "joint": "Shoulder",
-        "assesses": "Subscapularis tendon / tear",
-        "technique": "Hand on lower back; patient lifts hand away from back against resistance",
+        "section": "Shoulder",
+        "purpose": "Subscapularis",
     },
     {
         "name": "Crossed body adduction test",
         "exam": "upper-extremity-msk",
-        "joint": "Shoulder",
-        "assesses": "Acromioclavicular joint pathology",
-        "technique": "Adduct the patient's arm across the chest",
+        "section": "Shoulder",
+        "purpose": "Acromioclavicular joint",
+    },
+    {
+        "name": "Neer test",
+        "exam": "upper-extremity-msk",
+        "section": "Shoulder",
+        "purpose": "Subacromial impingement",
+    },
+    {
+        "name": "Hawkins test",
+        "exam": "upper-extremity-msk",
+        "section": "Shoulder",
+        "purpose": "Subacromial impingement",
     },
     # Upper extremity — wrist / hand
     {
-        "name": "Phalen test",
-        "exam": "upper-extremity-msk",
-        "joint": "Wrist",
-        "assesses": "Carpal tunnel syndrome",
-        "technique": "Hold wrists fully flexed with dorsal surfaces pressed together for 1 minute",
-    },
-    {
         "name": "Tinel sign",
         "exam": "upper-extremity-msk",
-        "joint": "Wrist",
-        "assesses": "Carpal tunnel syndrome (median nerve)",
-        "technique": "Tap over the volar carpal tunnel; tingling in median distribution is positive",
+        "section": "Wrist",
+        "purpose": "Carpal tunnel syndrome",
     },
     {
-        "name": "Finkelstein test",
+        "name": "Phalen test",
         "exam": "upper-extremity-msk",
-        "joint": "Wrist",
-        "assesses": "De Quervain tenosynovitis",
-        "technique": "Patient clenches thumb inside fist; ulnarly deviate the wrist",
+        "section": "Wrist",
+        "purpose": "Carpal tunnel syndrome",
+    },
+    {
+        "name": "Thumb tenosynovitis (Finkelstein) test",
+        "exam": "upper-extremity-msk",
+        "section": "Wrist",
+        "purpose": "Thumb tenosynovitis",
     },
     # Spine
     {
         "name": "Straight-leg raise",
         "exam": "spine-msk",
-        "joint": "Lumbar spine",
-        "assesses": "Sciatica / lumbar radiculopathy",
-        "technique": "Patient supine, raise leg with knee extended; radicular pain is positive",
+        "section": "Lumbar spine",
+        "purpose": "Sciatica / lumbar radiculopathy",
+    },
+    {
+        "name": "Spurling test",
+        "exam": "spine-msk",
+        "section": "Cervical spine",
+        "purpose": "Cervical radiculopathy",
+    },
+    # Neuro — the Neuro PDF also lists special tests
+    {
+        "name": "Brudzinski sign",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Meningitis",
+    },
+    {
+        "name": "Kernig sign",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Meningitis",
+    },
+    {
+        "name": "Asterixis",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Uremic encephalopathy",
+    },
+    {
+        "name": "Plantar reflex (Babinski)",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Upper motor neuron lesion",
+    },
+    {
+        "name": "Romberg test",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Proprioception / balance",
+    },
+    {
+        "name": "Ankle clonus",
+        "exam": "neurologic",
+        "section": "Special Tests",
+        "purpose": "Upper motor neuron lesion",
     },
 ]
 
 
 # ---------------------------------------------------------------------------
-# High-value per-exam facts — short, answerable, memorizable.
-# Each fact yields one multiple-choice question. The distractors are all
-# plausible wrong answers drawn from the same clinical domain.
+# Key facts — each entry is a single, literal, unambiguous fact stated in the
+# source PDFs. Distractors are drawn from the same clinical domain AND from
+# other PDF content whenever possible. Anything not directly in a PDF is
+# omitted.
 # ---------------------------------------------------------------------------
 
 KEY_FACTS: list[dict] = [
-    # Breast & Axilla
+    # Breast & Axilla — quotes from the PDF
     {
         "exam": "breast-axilla",
-        "question": "In the Breast & Axilla exam, which lymph node group is palpated first as part of the central exam?",
-        "answer": "Central axillary nodes",
+        "question": "What is the initial patient position for the Breast & Axilla exam?",
+        "answer": "Sitting on the exam table with arms at side, gown open to the front",
         "distractors": [
-            "Supraclavicular nodes",
-            "Inguinal nodes",
-            "Posterior cervical nodes",
+            "Supine with arms at sides, fully disrobed",
+            "Standing upright with both arms overhead",
+            "Left lateral decubitus with knees flexed",
         ],
     },
     {
         "exam": "breast-axilla",
-        "question": "If the central axillary nodes feel large, hard, or tender, which other node groups should be palpated?",
-        "answer": "Pectoral, lateral, suprascapular, and infra/supraclavicular nodes",
+        "question": "Per the PDF, which lymph nodes are the PRIMARY palpation target during the breast exam?",
+        "answer": "Central axillary lymph nodes",
         "distractors": [
-            "Only the contralateral axillary nodes",
-            "Only the supraclavicular nodes",
-            "The inguinal nodes",
+            "Pectoral lymph nodes",
+            "Infraclavicular lymph nodes",
+            "Supraclavicular lymph nodes",
         ],
     },
     {
         "exam": "breast-axilla",
-        "question": "Which patient position during breast inspection is best for revealing skin dimpling or retraction?",
-        "answer": "Hands pressed on hips with shoulders rolled forward",
+        "question": "If the central axillary nodes feel large, hard, or tender, which additional nodes does the PDF instruct you to palpate?",
+        "answer": "Pectoral, lateral, suprascapular, infra/supraclavicular",
         "distractors": [
-            "Supine with arms at the side",
-            "Prone with arms overhead",
-            "Left lateral decubitus",
+            "Only the contralateral central axillary",
+            "Submental and submandibular",
+            "Inguinal and femoral",
         ],
     },
     {
         "exam": "breast-axilla",
-        "question": "Which technique is used to palpate the breast tissue bilaterally in the supine position?",
-        "answer": "Chest wall sweep followed by bimanual digital palpation",
+        "question": "Which additional inspection positions does the PDF list for the breast exam?",
+        "answer": "Arms extended overhead, hands pressed on hips with shoulders rolled forward, seated and leaning forward",
         "distractors": [
-            "Single-finger tapping around the areola",
-            "Percussion of the breast tissue",
-            "Transillumination of the breast",
-        ],
-    },
-    {
-        "exam": "breast-axilla",
-        "question": "Which of the following is NOT part of the standard inspection of the breast?",
-        "answer": "Assess jugular venous pressure",
-        "distractors": [
-            "Compare size and symmetry",
-            "Look for retractions or dimpling",
-            "Inspect nipples for inversion",
+            "Supine with knees flexed, prone, and left lateral",
+            "Trendelenburg, reverse Trendelenburg, sitting",
+            "Squatting, kneeling, and standing on one leg",
         ],
     },
 
     # Female GU
     {
         "exam": "female-gu",
-        "question": "In what position is the patient placed for the Female Genitourinary exam?",
-        "answer": "Lithotomy position",
+        "question": "In what position is the patient placed for the Female GU exam?",
+        "answer": "Lithotomy position with genital region properly draped",
         "distractors": [
-            "Left lateral decubitus",
-            "Prone",
-            "Standing",
+            "Left lateral decubitus with knees to chest",
+            "Prone with legs abducted",
+            "Standing with one foot on a stool",
         ],
     },
     {
         "exam": "female-gu",
-        "question": "Before inserting the speculum, in which orientation is it initially held relative to the vaginal opening?",
-        "answer": "Vertically (widest aspect vertical), with downward pressure against the perineum",
+        "question": "Per the PDF, how is the speculum initially inserted?",
+        "answer": "Vertically (widest aspect vertical), applying downward pressure against the perineum, after separating the labia minora with the nondominant hand",
         "distractors": [
             "Horizontally, with upward pressure against the pubis",
             "Obliquely at 45°, pointing to the patient's left",
@@ -421,32 +402,52 @@ KEY_FACTS: list[dict] = [
     },
     {
         "exam": "female-gu",
-        "question": "If a labial mass is seen on inspection, which gland is palpated?",
-        "answer": "Bartholin gland",
+        "question": "Once the speculum is inside the vagina, what does the PDF say to do next?",
+        "answer": "Rotate the speculum so the widest aspect is horizontal, then advance with slight downward pressure",
         "distractors": [
-            "Skene gland only",
-            "Parotid gland",
-            "Submandibular gland",
+            "Open the speculum immediately without rotating",
+            "Withdraw 1 cm and re-insert",
+            "Rotate so the widest aspect is at 45°",
         ],
     },
     {
         "exam": "female-gu",
-        "question": "During the Female GU exam, who must be present to satisfy chaperone requirements?",
-        "answer": "A nurse or other HCP chaperone",
+        "question": "Which gland is palpated if a labial mass is seen on inspection?",
+        "answer": "Bartholin glands",
         "distractors": [
-            "Only the patient's partner",
-            "Another patient's family member",
-            "No one — consent alone is sufficient",
+            "Skene glands",
+            "Parotid glands",
+            "Cowper glands",
         ],
     },
     {
         "exam": "female-gu",
-        "question": "Which maneuver is used to assess for urinary incontinence and vaginal prolapse?",
+        "question": "Which maneuver does the PDF use to assess urinary incontinence and vaginal prolapse?",
         "answer": "Ask the patient to bear down",
         "distractors": [
             "Ask the patient to cough while seated",
-            "Apply Credé pressure to the bladder",
+            "Apply suprapubic pressure",
             "Perform the straight-leg raise",
+        ],
+    },
+    {
+        "exam": "female-gu",
+        "question": "During the bimanual exam, how does the PDF say to palpate the ovaries/adnexa?",
+        "answer": "Gently apply a downward sweeping pressure from the right lateral abdomen toward the vagina, then repeat on the left",
+        "distractors": [
+            "Press firmly on the suprapubic area while the patient valsalvas",
+            "Palpate directly over the sacroiliac joints",
+            "Use a single-finger internal exam only",
+        ],
+    },
+    {
+        "exam": "female-gu",
+        "question": "Per the PDF, what device is used for PAP smear specimen collection?",
+        "answer": "A PAP smear broom inserted into the cervical os and turned in a circle 3 times, then dropped into liquid cytology",
+        "distractors": [
+            "A sterile cotton swab rotated 360° at the cervical os",
+            "A suction catheter inserted through the cervical os",
+            "A cytology brush swept across the vaginal walls",
         ],
     },
 
@@ -458,97 +459,107 @@ KEY_FACTS: list[dict] = [
         "distractors": [
             "Lithotomy position",
             "Prone with legs abducted",
-            "Left lateral decubitus",
+            "Left lateral decubitus with knees flexed",
         ],
     },
     {
         "exam": "male-gu",
-        "question": "During inspection, what must be done with the foreskin of an uncircumcised patient?",
-        "answer": "Retract it (or ask the patient to retract) and then replace it after the exam",
+        "question": "What does the PDF say to do with the foreskin of an uncircumcised patient?",
+        "answer": "Retract it (or ask the patient to retract it), then replace it after the exam",
         "distractors": [
             "Leave it in place throughout the exam",
             "Apply lubricant and pin it back",
-            "Cut and remove any adhesions",
+            "Remove any adhesions with a sterile cotton swab",
         ],
     },
     {
         "exam": "male-gu",
-        "question": "Which technique is used to distinguish a hydrocele from a solid scrotal mass?",
-        "answer": "Transillumination of the scrotum",
+        "question": "How does the PDF say to elevate the scrotum for posterior inspection?",
+        "answer": "Elevate the scrotum to visualize the posterior aspect (may ask the patient to lift it)",
         "distractors": [
-            "Auscultation of the scrotum",
-            "Percussion of the inguinal canal",
-            "Palpation of the prostate",
+            "Palpate the perineum instead",
+            "Have the patient bend over the exam table",
+            "Use a tongue depressor to retract the scrotum inferiorly",
         ],
     },
     {
         "exam": "male-gu",
-        "question": "Which structure is palpated by inserting a finger into the scrotum and inviting the patient to cough?",
-        "answer": "Inguinal canal (to feel for a hernia)",
+        "question": "Where does the PDF locate the epididymis?",
+        "answer": "On the superior posterior surface of the testes",
         "distractors": [
-            "Vas deferens for tenderness",
-            "Testicular appendage",
-            "Bulbocavernosus muscle",
+            "At the anterior-inferior pole of the testes",
+            "Within the spermatic cord above the testes",
+            "Along the medial surface of the testes",
+        ],
+    },
+    {
+        "exam": "male-gu",
+        "question": "What is the position for the rectal portion of the male GU exam?",
+        "answer": "Lateral decubitus with knees bent, or standing leaning forward over the exam table",
+        "distractors": [
+            "Supine with legs in stirrups",
+            "Prone with hips flexed at 90°",
+            "Seated upright on the exam table",
         ],
     },
 
     # Lower Extremity MSK
     {
         "exam": "lower-extremity-msk",
-        "question": "The anterior hip is palpated at which landmarks?",
+        "question": "Which landmarks does the PDF list for palpating the anterior hip?",
         "answer": "Iliac crest, iliac tubercle, anterior-superior iliac spine, and pubic tubercle",
         "distractors": [
-            "Greater trochanter, ischial tuberosity, and sacrum only",
+            "Greater trochanter, ischial tuberosity, and sacrum",
             "Patella, tibial tuberosity, and fibular head",
             "Medial malleolus, calcaneus, and navicular",
         ],
     },
     {
         "exam": "lower-extremity-msk",
-        "question": "Which special test screens for gluteus medius weakness?",
-        "answer": "Trendelenburg test",
+        "question": "Which landmarks does the PDF list for palpating the posterior hip?",
+        "answer": "Posterior-superior iliac spine, ischial tuberosity, and sacroiliac joint",
         "distractors": [
-            "Lachman test",
-            "McMurray test",
-            "Thompson test",
+            "Greater trochanter, coccyx, and sacroiliac joint",
+            "Iliac crest, pubic symphysis, and coccyx",
+            "Lumbar spinous processes and iliac tubercle",
         ],
     },
     {
         "exam": "lower-extremity-msk",
-        "question": "Which maneuver is the 'figure-4' test used to evaluate hip or SI joint pathology?",
-        "answer": "FABER (Flexion, Abduction, External Rotation)",
-        "distractors": [
-            "FADIR (Flexion, Adduction, Internal Rotation)",
-            "Ober test",
-            "Thomas test",
-        ],
-    },
-    {
-        "exam": "lower-extremity-msk",
-        "question": "How is leg length measured?",
-        "answer": "From the anterior superior iliac spine to the medial malleolus (crossing knee medially), bilaterally",
+        "question": "How is leg length measured per the PDF?",
+        "answer": "From the anterior iliac spine to the medial malleolus, crossing the knee on the medial side, bilaterally",
         "distractors": [
             "From the umbilicus to the great toe, unilaterally",
             "From the greater trochanter to the lateral malleolus, bilaterally",
-            "From the pubic symphysis to the medial malleolus, bilaterally",
+            "From the pubic symphysis to the lateral malleolus, bilaterally",
+        ],
+    },
+    {
+        "exam": "lower-extremity-msk",
+        "question": "Per the PDF, what is the normal base width of gait?",
+        "answer": "2-4 inches from heel to heel",
+        "distractors": [
+            "1-2 inches from heel to heel",
+            "4-6 inches from heel to heel",
+            "6-8 inches from heel to heel",
         ],
     },
 
     # Upper Extremity MSK
     {
         "exam": "upper-extremity-msk",
-        "question": "The SITS muscles of the rotator cuff are:",
-        "answer": "Supraspinatus, Infraspinatus, Teres minor, Subscapularis",
+        "question": "Which rotator-cuff muscles does the PDF list as the SITS muscles?",
+        "answer": "Supraspinatus, infraspinatus, teres minor, subscapularis",
         "distractors": [
-            "Supraspinatus, Infraspinatus, Teres major, Subscapularis",
-            "Subclavius, Infraspinatus, Teres minor, Serratus",
-            "Supraspinatus, Infraspinatus, Trapezius, Subscapularis",
+            "Supraspinatus, infraspinatus, teres major, subscapularis",
+            "Subclavius, infraspinatus, teres minor, serratus anterior",
+            "Supraspinatus, infraspinatus, trapezius, subscapularis",
         ],
     },
     {
         "exam": "upper-extremity-msk",
-        "question": "Which landmarks are palpated on the elbow?",
-        "answer": "Olecranon process, radial head, biceps brachii tendon, medial and lateral epicondyles",
+        "question": "Which landmarks does the PDF list for palpating the elbow?",
+        "answer": "Olecranon process, radial head, biceps brachii tendon, medial epicondyle, lateral epicondyle",
         "distractors": [
             "Coracoid process, acromion, humeral head",
             "Scaphoid, lunate, capitate",
@@ -557,39 +568,19 @@ KEY_FACTS: list[dict] = [
     },
     {
         "exam": "upper-extremity-msk",
-        "question": "Which special test is used to isolate the supraspinatus?",
-        "answer": "Empty can test",
+        "question": "Which landmarks does the PDF list for palpating the shoulder?",
+        "answer": "Sternoclavicular joint, clavicle, acromioclavicular joint, coracoid process, greater tubercle, biceps tendon at bicipital groove",
         "distractors": [
-            "Finkelstein test",
-            "Phalen test",
-            "Hawkins impingement test",
+            "Olecranon, radial head, medial/lateral epicondyles",
+            "Anatomic snuffbox, carpals, metacarpals",
+            "Iliac crest, pubic tubercle, anterior-superior iliac spine",
         ],
     },
 
     # Spine
     {
         "exam": "spine-msk",
-        "question": "Which special test screens for sciatica / lumbar radiculopathy?",
-        "answer": "Straight-leg raise",
-        "distractors": [
-            "Spurling test",
-            "Adson test",
-            "Phalen test",
-        ],
-    },
-    {
-        "exam": "spine-msk",
-        "question": "How should a patient stand for scoliosis screening?",
-        "answer": "Knees straight, flexing forward at the waist while the examiner views from behind",
-        "distractors": [
-            "Arms overhead with the trunk extended",
-            "Squatting with arms crossed",
-            "Standing on one leg",
-        ],
-    },
-    {
-        "exam": "spine-msk",
-        "question": "Which three regions of the spine are routinely inspected and palpated?",
+        "question": "Which regions of the spine does the PDF inspect and palpate?",
         "answer": "Cervical, thoracic, and lumbar",
         "distractors": [
             "Cervical, sacral, and coccygeal",
@@ -597,17 +588,37 @@ KEY_FACTS: list[dict] = [
             "Cervical and lumbar only",
         ],
     },
+    {
+        "exam": "spine-msk",
+        "question": "Per the PDF, how is the scoliosis screen performed?",
+        "answer": "Patient stands with knees straight and flexes forward at the waist; inspect for spine curvature and asymmetry",
+        "distractors": [
+            "Patient stands with arms overhead and trunk extended",
+            "Patient squats with arms crossed",
+            "Patient stands on one leg with eyes closed",
+        ],
+    },
+    {
+        "exam": "spine-msk",
+        "question": "Per the PDF, what structures are palpated during the spine exam?",
+        "answer": "Paraspinous muscle, spinous processes, facet joints, vertebrae, sacroiliac joint",
+        "distractors": [
+            "Iliopsoas, gluteus maximus, hamstrings",
+            "Deltoid, trapezius, rhomboids",
+            "Scapula, clavicle, sternum",
+        ],
+    },
 
     # Neurologic
     {
         "exam": "neurologic",
-        "question": "Which tuning fork frequency is used to assess vibratory sensation?",
+        "question": "Which tuning fork frequency does the PDF specify for vibratory sensation?",
         "answer": "128 Hz",
         "distractors": ["256 Hz", "512 Hz", "1024 Hz"],
     },
     {
         "exam": "neurologic",
-        "question": "Where is vibratory sensation first tested on the foot?",
+        "question": "Where on the foot does the PDF first test vibratory sensation?",
         "answer": "At the 1st MTP joint",
         "distractors": [
             "At the medial malleolus",
@@ -617,58 +628,68 @@ KEY_FACTS: list[dict] = [
     },
     {
         "exam": "neurologic",
-        "question": "Pronator drift is elicited with the patient's eyes closed and arms held how?",
-        "answer": "Arms held in front at 90° with palms up",
+        "question": "Per the PDF, how are the arms held to elicit pronator drift?",
+        "answer": "Patient closes eyes and holds both arms in front at a 90° angle",
         "distractors": [
             "Arms crossed over the chest",
             "Arms held at the sides with fists clenched",
-            "Arms fully abducted to 180° overhead",
+            "Arms fully abducted overhead",
         ],
     },
     {
         "exam": "neurologic",
-        "question": "Stereognosis is tested by:",
-        "answer": "Placing a familiar object in the patient's hand (eyes closed) and asking them to identify it",
+        "question": "Per the PDF, how is stereognosis tested?",
+        "answer": "Have patient close eyes and identify two objects placed in their hand one at a time",
         "distractors": [
-            "Tracing a letter on the patient's palm (eyes closed)",
-            "Touching both arms simultaneously",
-            "Asking the patient to repeat a phrase",
+            "Trace a number or letter on the patient's palm",
+            "Touch both arms simultaneously",
+            "Ask the patient to identify a sound near each ear",
         ],
     },
     {
         "exam": "neurologic",
-        "question": "Graphesthesia is tested by:",
-        "answer": "Tracing a number or letter on the patient's palm (eyes closed) and asking them to identify it",
+        "question": "Per the PDF, how is graphesthesia tested?",
+        "answer": "Have patient close eyes; trace a number or letter on the patient's palm and ask them to identify it",
         "distractors": [
-            "Placing an object in the hand and asking them to identify it",
-            "Touching both arms simultaneously",
-            "Snapping fingers near each ear",
+            "Place an object in the hand and ask them to identify it",
+            "Touch both arms simultaneously",
+            "Apply sharp and dull stimuli to the palm",
         ],
     },
     {
         "exam": "neurologic",
-        "question": "Extinction is tested by:",
-        "answer": "Touching both arms simultaneously and asking where the patient feels your touch",
+        "question": "Per the PDF, how is extinction tested?",
+        "answer": "Have patient close eyes; touch each arm individually, then simultaneously touch corresponding areas on both arms and ask where they feel your touch",
         "distractors": [
-            "Placing an object in the hand and asking them to identify it",
-            "Tracing a letter on the palm",
-            "Asking the patient to close their eyes and point to where they feel a pin",
+            "Place an object in the hand and ask them to identify it",
+            "Trace a letter on the palm",
+            "Ask the patient to point to where they feel a pin",
         ],
     },
     {
         "exam": "neurologic",
-        "question": "Intention tremor and past-pointing on finger-to-nose testing localize to:",
-        "answer": "Ipsilateral cerebellar hemisphere",
+        "question": "Per the PDF, what does increased muscle tone indicate?",
+        "answer": "An upper motor neuron lesion",
         "distractors": [
-            "Contralateral motor cortex",
-            "Ipsilateral basal ganglia",
-            "Contralateral thalamus",
+            "A lower motor neuron lesion",
+            "A peripheral nerve injury distal to the muscle",
+            "Cerebellar dysfunction",
         ],
     },
     {
         "exam": "neurologic",
-        "question": "The MMSE is part of which portion of the neurologic exam?",
-        "answer": "Mental status evaluation",
+        "question": "Per the PDF, what does decreased muscle tone indicate?",
+        "answer": "A lower motor neuron lesion",
+        "distractors": [
+            "An upper motor neuron lesion",
+            "A cerebellar hemispheric lesion",
+            "A basal ganglia lesion",
+        ],
+    },
+    {
+        "exam": "neurologic",
+        "question": "Per the PDF, the MMSE is part of which section of the neurologic exam?",
+        "answer": "Mental Status Evaluation",
         "distractors": [
             "Cranial nerve exam",
             "Sensory exam",
@@ -677,12 +698,42 @@ KEY_FACTS: list[dict] = [
     },
     {
         "exam": "neurologic",
-        "question": "Increased muscle tone on exam indicates:",
-        "answer": "An upper motor neuron lesion",
+        "question": "Per the PDF, how does the Romberg test begin?",
+        "answer": "Patient stands with both feet together, arms at side, with eyes open; if stable, close eyes and stand for 20-30 sec",
         "distractors": [
-            "A lower motor neuron lesion",
-            "A peripheral nerve injury distal to the muscle",
-            "Cerebellar dysfunction",
+            "Patient stands on one leg with eyes open for 30 sec",
+            "Patient walks heel-to-toe along a straight line",
+            "Patient stands with feet apart while the examiner pushes laterally",
+        ],
+    },
+    {
+        "exam": "neurologic",
+        "question": "Per the PDF, how is the Brudzinski sign elicited?",
+        "answer": "Patient supine; passively flex the chin toward the sternum and observe for flexion of hips and knees",
+        "distractors": [
+            "Patient supine; passively extend the knee with hip flexed 90°",
+            "Patient seated; tap the knee with a reflex hammer",
+            "Patient prone; squeeze the calf and watch for ankle plantarflexion",
+        ],
+    },
+    {
+        "exam": "neurologic",
+        "question": "Per the PDF, how is the Kernig sign elicited?",
+        "answer": "Patient supine with hip and knee flexed at 90°; passively extend the knee",
+        "distractors": [
+            "Passively flex the chin toward the sternum",
+            "Tap the lateral sole from heel to ball of foot",
+            "Dorsiflex the foot and observe for rhythmic oscillations",
+        ],
+    },
+    {
+        "exam": "neurologic",
+        "question": "Per the PDF, how is the plantar reflex (Babinski) elicited?",
+        "answer": "Stroke the lateral aspect of the sole from the heel to the ball of the foot, curving medially across the ball",
+        "distractors": [
+            "Tap the Achilles tendon with a reflex hammer",
+            "Squeeze the calf with the patient prone",
+            "Flex the chin toward the sternum",
         ],
     },
 ]
