@@ -67,19 +67,35 @@ class QuizRequest(BaseModel):
     count: int = 10
 
 
+def _quiz_pools(slug: str) -> tuple[list[str], list[str]]:
+    """Return (target_items, foreign_items) for a quiz on `slug`.
+
+    Foreign items exclude anything that also appears in the target exam, so
+    distractors can never collide with a valid target-exam step (PDF extraction
+    causes real cross-exam overlap — e.g., dermatome labels appear in both
+    Neuro and MSK-UE checklists).
+    """
+    exam = EXAMS[slug]
+    target_items = sorted({i for i in exam["items"] if 15 <= len(i) <= 220})
+    target_set = set(target_items)
+    foreign: set[str] = set()
+    for other_slug, other_exam in EXAMS.items():
+        if other_slug == slug:
+            continue
+        for item in other_exam["items"]:
+            if 15 <= len(item) <= 220 and item not in target_set:
+                foreign.add(item)
+    return target_items, sorted(foreign)
+
+
 @app.post("/api/exam/{slug}/quiz")
 def make_quiz(slug: str, req: QuizRequest):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
-    target_items = [i for i in exam["items"] if 15 <= len(i) <= 220]
-    other_items: list[str] = []
-    for other_slug, other_exam in EXAMS.items():
-        if other_slug == slug:
-            continue
-        other_items.extend(i for i in other_exam["items"] if 15 <= len(i) <= 220)
+    target_items, foreign_items = _quiz_pools(slug)
 
-    if len(target_items) < 4 or len(other_items) < 3:
+    if len(target_items) < 4 or len(foreign_items) < 3:
         raise HTTPException(400, "Not enough items for quiz")
 
     n = max(1, min(req.count, len(target_items)))
@@ -87,46 +103,40 @@ def make_quiz(slug: str, req: QuizRequest):
 
     questions = []
     for idx, correct in enumerate(chosen_correct):
-        # type A: "Which is a step in this exam?" — correct from target, distractors from other exams
-        # type B: "Which is NOT a step in this exam?" — 3 target, 1 other
         q_type = random.choice(["belongs", "not_belongs"])
         if q_type == "belongs":
-            distractors = random.sample(other_items, k=3)
+            # correct is in target; 3 distractors from foreign pool
+            distractors = random.sample(foreign_items, k=3)
             choices = [correct] + distractors
             random.shuffle(choices)
-            questions.append({
-                "id": idx,
-                "type": "belongs",
-                "prompt": f"Which of the following is a step in the {exam['title']} exam?",
-                "choices": choices,
-                "answer_index": choices.index(correct),
-            })
+            answer_value = correct
+            prompt = f"Which of the following is a step in the {exam['title']} exam?"
         else:
-            # pick 3 target items different from "correct" + 1 foreign item (the wrong answer)
+            # 3 valid target items + 1 foreign (which is the wrong one to pick)
             pool = [i for i in target_items if i != correct]
             if len(pool) < 3:
-                distractors = random.sample(other_items, k=3)
+                # fallback to belongs-style question
+                distractors = random.sample(foreign_items, k=3)
                 choices = [correct] + distractors
                 random.shuffle(choices)
-                questions.append({
-                    "id": idx,
-                    "type": "belongs",
-                    "prompt": f"Which of the following is a step in the {exam['title']} exam?",
-                    "choices": choices,
-                    "answer_index": choices.index(correct),
-                })
+                answer_value = correct
+                q_type = "belongs"
+                prompt = f"Which of the following is a step in the {exam['title']} exam?"
             else:
                 valid_three = random.sample(pool, k=3)
-                foreign = random.choice(other_items)
+                foreign = random.choice(foreign_items)
                 choices = valid_three + [foreign]
                 random.shuffle(choices)
-                questions.append({
-                    "id": idx,
-                    "type": "not_belongs",
-                    "prompt": f"Which of the following is NOT a step in the {exam['title']} exam?",
-                    "choices": choices,
-                    "answer_index": choices.index(foreign),
-                })
+                answer_value = foreign
+                prompt = f"Which of the following is NOT a step in the {exam['title']} exam?"
+
+        questions.append({
+            "id": idx,
+            "type": q_type,
+            "prompt": prompt,
+            "choices": choices,
+            "answer_index": choices.index(answer_value),
+        })
     return {"exam": {"slug": exam["slug"], "title": exam["title"]}, "questions": questions}
 
 
