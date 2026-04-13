@@ -1,0 +1,6 @@
+services:
+  med:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${MED_PORT:-8002}:8000"

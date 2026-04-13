@@ -1,0 +1,29 @@
+name: Deploy to Droplet
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: root
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -e
+            if [ ! -d /opt/med ]; then
+              git clone https://github.com/virenkhandal/med.git /opt/med
+            fi
+            cd /opt/med
+            git fetch origin main
+            git reset --hard origin/main
+            cd app
+            docker compose build --build-arg CACHE_BUST=$(date +%s)
+            docker compose up -d
+            docker image prune -f

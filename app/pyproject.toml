@@ -1,0 +1,14 @@
+[project]
+name = "med-study"
+version = "0.1.0"
+description = "Med school PE exam study app — quiz + oral practice"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "python-multipart>=0.0.12",
+]
+
+[tool.setuptools]
+packages = ["medstudy"]
