@@ -4,61 +4,11 @@ const recStatus = document.getElementById('recStatus');
 const transcriptEl = document.getElementById('transcript');
 const reportEl = document.getElementById('report');
 
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-let recognition = null;
-let finalTranscript = '';
-let interimTranscript = '';
-let shouldKeepAlive = false;
+let mediaRecorder = null;
+let audioChunks = [];
+let stream = null;
 let elapsedStart = 0;
 let elapsedTimer = null;
-
-if (!SR) {
-  recStatus.textContent = 'Speech recognition not supported in this browser. Use Chrome, Edge, or Safari.';
-  startRec.disabled = true;
-}
-
-function buildRecognition() {
-  const rec = new SR();
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.lang = 'en-US';
-  rec.onresult = (event) => {
-    interimTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const res = event.results[i];
-      if (res.isFinal) {
-        finalTranscript += res[0].transcript + ' ';
-      } else {
-        interimTranscript += res[0].transcript;
-      }
-    }
-    renderTranscript();
-  };
-  rec.onend = () => {
-    if (shouldKeepAlive) {
-      try { rec.start(); } catch (_) { /* ignore restart race */ }
-    }
-  };
-  rec.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') return;
-    recStatus.textContent = `Recognition error: ${e.error}`;
-  };
-  return rec;
-}
-
-function renderTranscript() {
-  transcriptEl.textContent = '';
-  const finalNode = document.createTextNode(finalTranscript);
-  transcriptEl.appendChild(finalNode);
-  if (interimTranscript) {
-    const span = document.createElement('span');
-    span.className = 'interim';
-    span.textContent = interimTranscript;
-    transcriptEl.appendChild(span);
-  }
-  transcriptEl.scrollTop = transcriptEl.scrollHeight;
-}
 
 function formatElapsed(ms) {
   const s = Math.floor(ms / 1000);
@@ -67,89 +17,207 @@ function formatElapsed(ms) {
   return `${mm}:${ss}`;
 }
 
-startRec.addEventListener('click', () => {
-  finalTranscript = '';
-  interimTranscript = '';
-  renderTranscript();
+function pickMimeType() {
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4',
+  ];
+  for (const t of candidates) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function setBusy(busy) {
+  startRec.disabled = busy;
+  stopRec.disabled = !busy;
+}
+
+if (!navigator.mediaDevices || !window.MediaRecorder) {
+  recStatus.textContent = 'Browser does not support audio recording. Use Chrome, Firefox, Edge, or Safari 14+.';
+  startRec.disabled = true;
+}
+
+startRec.addEventListener('click', async () => {
+  transcriptEl.textContent = 'Recording…';
   reportEl.textContent = '';
-  shouldKeepAlive = true;
-  recognition = buildRecognition();
+  audioChunks = [];
   try {
-    recognition.start();
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (e) {
-    recStatus.textContent = `Could not start: ${e.message}`;
+    recStatus.textContent = `Microphone access denied: ${e.message}`;
     return;
   }
-  startRec.disabled = true;
-  stopRec.disabled = false;
+  const mimeType = pickMimeType();
+  try {
+    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  } catch (e) {
+    recStatus.textContent = `Could not start recorder: ${e.message}`;
+    stream.getTracks().forEach(t => t.stop());
+    return;
+  }
+  mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.onerror = (e) => { recStatus.textContent = `Recorder error: ${e.error?.name || 'unknown'}`; };
+  mediaRecorder.onstop = handleStop;
+  mediaRecorder.start(1000);  // timeslice 1s — chunks accumulate
+
+  setBusy(true);
   elapsedStart = Date.now();
   elapsedTimer = setInterval(() => {
-    recStatus.textContent = `Recording… ${formatElapsed(Date.now() - elapsedStart)}`;
+    recStatus.textContent = `● Recording ${formatElapsed(Date.now() - elapsedStart)}`;
   }, 500);
 });
 
-stopRec.addEventListener('click', async () => {
-  shouldKeepAlive = false;
-  if (recognition) {
-    try { recognition.stop(); } catch (_) { /* ignore */ }
-  }
+stopRec.addEventListener('click', () => {
+  if (!mediaRecorder) return;
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
-  startRec.disabled = false;
-  stopRec.disabled = true;
-  recStatus.textContent = 'Scoring…';
-  try {
-    const res = await fetch(`/api/exam/${window.EXAM_SLUG}/score`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: finalTranscript.trim() }),
-    });
-    if (!res.ok) throw new Error(`Server ${res.status}`);
-    const data = await res.json();
-    renderReport(data);
-    recStatus.textContent = `Done — ${data.covered_items}/${data.total_items} items covered (${data.score_pct}%)`;
-  } catch (err) {
-    recStatus.textContent = `Error: ${err.message}`;
-  }
+  recStatus.textContent = 'Finalizing recording…';
+  try { mediaRecorder.stop(); } catch (e) { /* ignore */ }
 });
 
-function renderReport(data) {
+async function handleStop() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  const mimeType = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+  const blob = new Blob(audioChunks, { type: mimeType });
+  audioChunks = [];
+  mediaRecorder = null;
+
+  const sizeMb = (blob.size / (1024 * 1024)).toFixed(2);
+  recStatus.textContent = `Transcribing ${sizeMb} MB (this may take up to a minute)…`;
+  transcriptEl.textContent = 'Transcribing…';
+
+  try {
+    const fd = new FormData();
+    const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+    fd.append('audio', blob, `recording.${ext}`);
+    const tResp = await fetch('/api/transcribe', { method: 'POST', body: fd });
+    if (!tResp.ok) {
+      const txt = await tResp.text();
+      throw new Error(`transcribe ${tResp.status}: ${txt.slice(0, 200)}`);
+    }
+    const tData = await tResp.json();
+    transcriptEl.textContent = tData.text || '(no speech detected)';
+
+    recStatus.textContent = 'Scoring…';
+    const sResp = await fetch(`/api/exam/${window.EXAM_SLUG}/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: tData.text || '' }),
+    });
+    if (!sResp.ok) throw new Error(`score ${sResp.status}`);
+    const sData = await sResp.json();
+    renderReport(sData, tData);
+    recStatus.textContent = `Done — ${sData.covered_items}/${sData.total_items} items covered (${sData.score_pct}%)`;
+  } catch (err) {
+    recStatus.textContent = `Error: ${err.message}`;
+    transcriptEl.textContent = '';
+  } finally {
+    setBusy(false);
+  }
+}
+
+function gaugeClass(pct) {
+  if (pct >= 75) return 'good';
+  if (pct >= 40) return 'warn';
+  return 'poor';
+}
+
+function renderReport(data, tData) {
   reportEl.textContent = '';
 
+  // Summary stats row
   const header = document.createElement('div');
   header.className = 'report-header';
   const stats = [
-    { value: `${data.score_pct}%`, label: 'coverage' },
+    { value: `${data.score_pct}%`, label: 'overall coverage' },
     { value: `${data.covered_items}/${data.total_items}`, label: 'items hit' },
     { value: `${data.word_count}`, label: 'words spoken' },
+    { value: `${tData && tData.duration ? Math.round(tData.duration) + 's' : '—'}`, label: 'audio duration' },
   ];
   stats.forEach(s => {
-    const d = document.createElement('div');
-    d.className = 'stat';
-    const strong = document.createElement('strong');
-    strong.textContent = s.value;
-    const small = document.createElement('small');
-    small.textContent = s.label;
-    d.appendChild(strong);
-    d.appendChild(small);
-    header.appendChild(d);
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    const v = document.createElement('span');
+    v.className = 'value';
+    v.textContent = s.value;
+    const l = document.createElement('span');
+    l.className = 'label';
+    l.textContent = s.label;
+    card.appendChild(v);
+    card.appendChild(l);
+    header.appendChild(card);
   });
   reportEl.appendChild(header);
 
+  // Section-by-section report
+  const secReport = document.createElement('div');
+  secReport.className = 'sections-report';
+
   const h = document.createElement('h3');
-  h.textContent = 'Per-item breakdown';
-  h.style.marginTop = '20px';
-  reportEl.appendChild(h);
+  h.textContent = 'Per-section coverage';
+  secReport.appendChild(h);
 
-  const hitList = document.createElement('ol');
-  hitList.className = 'hit-list missed-list';
-  data.results.forEach(r => {
-    const li = document.createElement('li');
-    li.className = r.covered ? 'hit' : 'miss';
-    const mark = r.covered ? '✓' : '✗';
-    li.textContent = `${mark} ${r.item}`;
-    hitList.appendChild(li);
+  // Sort sections by score ascending so weakest are on top
+  const sortedSections = [...data.sections].sort((a, b) => a.score_pct - b.score_pct);
+  sortedSections.forEach(sec => {
+    const row = document.createElement('div');
+    row.className = 'section-row';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-row-header';
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = `${sec.name} (${sec.covered}/${sec.total})`;
+    const pct = document.createElement('span');
+    pct.className = 'pct';
+    pct.textContent = `${sec.score_pct}%`;
+    hdr.appendChild(name);
+    hdr.appendChild(pct);
+    row.appendChild(hdr);
+
+    const gauge = document.createElement('div');
+    gauge.className = 'gauge';
+    const fill = document.createElement('div');
+    fill.className = `gauge-fill ${gaugeClass(sec.score_pct)}`;
+    fill.style.width = `${Math.max(2, sec.score_pct)}%`;
+    gauge.appendChild(fill);
+    row.appendChild(gauge);
+
+    const details = document.createElement('details');
+    details.className = 'section-details';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Show';
+    details.appendChild(summary);
+    sec.subsections.forEach(sub => {
+      const block = document.createElement('div');
+      block.className = 'sub-report';
+      const h5 = document.createElement('h5');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = sub.name;
+      const small = document.createElement('small');
+      small.textContent = `${sub.covered}/${sub.total} · ${sub.score_pct}%`;
+      h5.appendChild(nameSpan);
+      h5.appendChild(small);
+      block.appendChild(h5);
+      const ul = document.createElement('ul');
+      sub.items.forEach(item => {
+        const li = document.createElement('li');
+        li.className = item.covered ? 'hit' : 'miss';
+        li.textContent = item.item;
+        ul.appendChild(li);
+      });
+      block.appendChild(ul);
+      details.appendChild(block);
+    });
+    row.appendChild(details);
+    secReport.appendChild(row);
   });
-  reportEl.appendChild(hitList);
 
+  reportEl.appendChild(secReport);
   reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

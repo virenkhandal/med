@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
+import tempfile
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -17,25 +20,64 @@ STATIC_DIR = ROOT / "static"
 with DATA_FILE.open() as f:
     EXAMS: dict[str, dict] = json.load(f)
 
+
+# --------- text utilities ----------
+
 STOPWORDS = {
     "the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "with",
     "at", "by", "is", "are", "be", "as", "that", "this", "from", "into",
     "using", "use", "if", "it", "not", "no", "any", "each", "both", "all",
-    "patient", "verbalize", "assess", "assesses", "perform", "performs",
+    "verbalize", "verbalizes", "verbalized", "verbalizing",
+    "assess", "assesses", "perform", "performs",
     "ask", "asking", "check", "checks", "their", "your", "my", "you",
     "repeat", "compare", "bilaterally", "side", "would", "should", "may",
     "will", "have", "has", "then", "than", "other", "some", "while",
-    "across", "between", "while", "patients", "examiner",
+    "across", "between", "patients", "examiner", "patient",
 }
 
 
 def tokenize(text: str) -> list[str]:
-    return [w for w in re.findall(r"[a-z][a-z0-9\-]+", text.lower()) if w not in STOPWORDS and len(w) > 2]
+    return [
+        w
+        for w in re.findall(r"[a-z][a-z0-9\-]+", text.lower())
+        if w not in STOPWORDS and len(w) > 2
+    ]
 
 
 def keywords_from_item(item: str, min_len: int = 4) -> set[str]:
     return {w for w in tokenize(item) if len(w) >= min_len}
 
+
+# --------- exam traversal helpers ----------
+
+def iter_items(exam: dict) -> list[str]:
+    out: list[str] = []
+    for sec in exam.get("sections", []):
+        for sub in sec.get("subsections", []):
+            out.extend(sub.get("items", []))
+    return out
+
+
+def target_and_foreign_pools(slug: str) -> tuple[list[str], list[str]]:
+    """Return (target, foreign) item pools for quiz generation.
+
+    Foreign pool excludes items present in the target exam to prevent ambiguous
+    distractors caused by real cross-exam content overlap.
+    """
+    exam = EXAMS[slug]
+    target_items = sorted({i for i in iter_items(exam) if 15 <= len(i) <= 220})
+    target_set = set(target_items)
+    foreign: set[str] = set()
+    for other_slug, other_exam in EXAMS.items():
+        if other_slug == slug:
+            continue
+        for item in iter_items(other_exam):
+            if 15 <= len(item) <= 220 and item not in target_set:
+                foreign.add(item)
+    return target_items, sorted(foreign)
+
+
+# --------- FastAPI app ----------
 
 app = FastAPI(title="Med Study")
 
@@ -45,13 +87,18 @@ if STATIC_DIR.exists():
 
 @app.get("/healthz")
 def health():
-    return {"ok": True, "exams": len(EXAMS)}
+    return {"ok": True, "exams": len(EXAMS), "whisper": _whisper_status()}
 
 
 @app.get("/api/exams")
 def list_exams():
     return [
-        {"slug": e["slug"], "title": e["title"], "item_count": len(e["items"])}
+        {
+            "slug": e["slug"],
+            "title": e["title"],
+            "item_count": e.get("item_count") or len(iter_items(e)),
+            "section_count": len(e.get("sections", [])),
+        }
         for e in EXAMS.values()
     ]
 
@@ -63,29 +110,10 @@ def get_exam(slug: str):
     return EXAMS[slug]
 
 
+# --------- quiz ----------
+
 class QuizRequest(BaseModel):
     count: int = 10
-
-
-def _quiz_pools(slug: str) -> tuple[list[str], list[str]]:
-    """Return (target_items, foreign_items) for a quiz on `slug`.
-
-    Foreign items exclude anything that also appears in the target exam, so
-    distractors can never collide with a valid target-exam step (PDF extraction
-    causes real cross-exam overlap — e.g., dermatome labels appear in both
-    Neuro and MSK-UE checklists).
-    """
-    exam = EXAMS[slug]
-    target_items = sorted({i for i in exam["items"] if 15 <= len(i) <= 220})
-    target_set = set(target_items)
-    foreign: set[str] = set()
-    for other_slug, other_exam in EXAMS.items():
-        if other_slug == slug:
-            continue
-        for item in other_exam["items"]:
-            if 15 <= len(item) <= 220 and item not in target_set:
-                foreign.add(item)
-    return target_items, sorted(foreign)
 
 
 @app.post("/api/exam/{slug}/quiz")
@@ -93,7 +121,7 @@ def make_quiz(slug: str, req: QuizRequest):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
-    target_items, foreign_items = _quiz_pools(slug)
+    target_items, foreign_items = target_and_foreign_pools(slug)
 
     if len(target_items) < 4 or len(foreign_items) < 3:
         raise HTTPException(400, "Not enough items for quiz")
@@ -105,17 +133,14 @@ def make_quiz(slug: str, req: QuizRequest):
     for idx, correct in enumerate(chosen_correct):
         q_type = random.choice(["belongs", "not_belongs"])
         if q_type == "belongs":
-            # correct is in target; 3 distractors from foreign pool
             distractors = random.sample(foreign_items, k=3)
             choices = [correct] + distractors
             random.shuffle(choices)
             answer_value = correct
             prompt = f"Which of the following is a step in the {exam['title']} exam?"
         else:
-            # 3 valid target items + 1 foreign (which is the wrong one to pick)
             pool = [i for i in target_items if i != correct]
             if len(pool) < 3:
-                # fallback to belongs-style question
                 distractors = random.sample(foreign_items, k=3)
                 choices = [correct] + distractors
                 random.shuffle(choices)
@@ -140,8 +165,25 @@ def make_quiz(slug: str, req: QuizRequest):
     return {"exam": {"slug": exam["slug"], "title": exam["title"]}, "questions": questions}
 
 
+# --------- scoring (section-aware) ----------
+
 class ScoreRequest(BaseModel):
     transcript: str
+
+
+def _score_item(item: str, transcript_tokens: set[str]) -> dict:
+    kws = keywords_from_item(item)
+    if not kws:
+        return {"item": item, "keywords": [], "hits": [], "coverage": 0.0, "covered": False}
+    hits = kws & transcript_tokens
+    ratio = len(hits) / len(kws)
+    return {
+        "item": item,
+        "keywords": sorted(kws),
+        "hits": sorted(hits),
+        "coverage": round(ratio, 2),
+        "covered": ratio >= 0.5,
+    }
 
 
 @app.post("/api/exam/{slug}/score")
@@ -149,69 +191,204 @@ def score_oral(slug: str, req: ScoreRequest):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
-    transcript = req.transcript or ""
+    transcript = (req.transcript or "").strip()
     transcript_tokens = set(tokenize(transcript))
 
-    results = []
-    covered = 0
-    for item in exam["items"]:
-        kws = keywords_from_item(item)
-        if not kws:
-            continue
-        hits = kws & transcript_tokens
-        ratio = len(hits) / len(kws) if kws else 0
-        is_covered = ratio >= 0.5
-        if is_covered:
-            covered += 1
-        results.append({
-            "item": item,
-            "keywords": sorted(kws),
-            "hits": sorted(hits),
-            "coverage": round(ratio, 2),
-            "covered": is_covered,
-        })
+    total_items = 0
+    total_covered = 0
+    section_reports: list[dict] = []
 
-    total = len(results)
-    score = round(100 * covered / total, 1) if total else 0
-    missed = [r for r in results if not r["covered"]]
+    for sec in exam.get("sections", []):
+        sec_total = 0
+        sec_covered = 0
+        sub_reports: list[dict] = []
+        for sub in sec.get("subsections", []):
+            item_reports: list[dict] = []
+            sub_total = 0
+            sub_covered = 0
+            for item in sub.get("items", []):
+                r = _score_item(item, transcript_tokens)
+                if not r["keywords"]:
+                    continue
+                item_reports.append(r)
+                sub_total += 1
+                if r["covered"]:
+                    sub_covered += 1
+            if sub_total == 0:
+                continue
+            sub_reports.append({
+                "name": sub["name"],
+                "total": sub_total,
+                "covered": sub_covered,
+                "score_pct": round(100 * sub_covered / sub_total, 1),
+                "items": item_reports,
+            })
+            sec_total += sub_total
+            sec_covered += sub_covered
+        if sec_total == 0:
+            continue
+        section_reports.append({
+            "name": sec["name"],
+            "total": sec_total,
+            "covered": sec_covered,
+            "score_pct": round(100 * sec_covered / sec_total, 1),
+            "subsections": sub_reports,
+        })
+        total_items += sec_total
+        total_covered += sec_covered
+
+    score_pct = round(100 * total_covered / total_items, 1) if total_items else 0.0
+    # Weakest sections sorted ascending by score, up to 5
+    weakest = sorted(section_reports, key=lambda s: s["score_pct"])[:5]
     return {
         "exam": {"slug": exam["slug"], "title": exam["title"]},
-        "total_items": total,
-        "covered_items": covered,
-        "score_pct": score,
+        "score_pct": score_pct,
+        "total_items": total_items,
+        "covered_items": total_covered,
         "word_count": len(transcript.split()),
-        "missed": missed[:50],
-        "results": results,
+        "sections": section_reports,
+        "weakest_sections": [
+            {"name": s["name"], "score_pct": s["score_pct"], "covered": s["covered"], "total": s["total"]}
+            for s in weakest
+        ],
     }
 
 
-# ---------- HTML pages ----------
+# --------- Whisper transcription ----------
+
+_whisper_model = None
+_whisper_error: str | None = None
+
+
+def _whisper_status() -> dict:
+    return {"loaded": _whisper_model is not None, "error": _whisper_error}
+
+
+def _get_whisper():
+    global _whisper_model, _whisper_error
+    if _whisper_model is not None:
+        return _whisper_model
+    try:
+        from faster_whisper import WhisperModel  # type: ignore
+
+        model_name = os.environ.get("WHISPER_MODEL", "tiny.en")
+        compute_type = os.environ.get("WHISPER_COMPUTE", "int8")
+        _whisper_model = WhisperModel(model_name, device="cpu", compute_type=compute_type)
+        _whisper_error = None
+        return _whisper_model
+    except Exception as e:  # pragma: no cover - environment-dependent
+        _whisper_error = f"{type(e).__name__}: {e}"
+        raise
+
+
+@app.post("/api/transcribe")
+async def transcribe(audio: UploadFile = File(...)):
+    """Accept an audio blob and return a transcript using faster-whisper.
+
+    Uses WhisperModel with a small English-only model to stay fast on CPU.
+    """
+    try:
+        model = _get_whisper()
+    except Exception:
+        raise HTTPException(503, f"Whisper not available: {_whisper_error}")
+
+    # Save to a temp file — faster-whisper accepts a path or stream, but a real
+    # file is most reliable across codecs (webm/opus, ogg, m4a, wav).
+    suffix = Path(audio.filename or "audio.webm").suffix or ".webm"
+    tmp_dir = Path(tempfile.gettempdir())
+    tmp_path = tmp_dir / f"medstudy-{os.getpid()}-{random.randint(1000,9999)}{suffix}"
+    try:
+        contents = await audio.read()
+        if not contents:
+            raise HTTPException(400, "Empty audio payload")
+        tmp_path.write_bytes(contents)
+
+        segments, info = model.transcribe(
+            str(tmp_path),
+            language="en",
+            vad_filter=True,
+            beam_size=1,
+        )
+        parts: list[dict] = []
+        full_text_parts: list[str] = []
+        for seg in segments:
+            parts.append({
+                "start": round(seg.start, 2),
+                "end": round(seg.end, 2),
+                "text": seg.text.strip(),
+            })
+            full_text_parts.append(seg.text.strip())
+        return {
+            "text": " ".join(full_text_parts).strip(),
+            "duration": round(info.duration, 2),
+            "language": info.language,
+            "segments": parts,
+        }
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+# --------- HTML pages ----------
+
+def _escape(s: str) -> str:
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
 
 def _page(body: str, title: str = "Med Study") -> HTMLResponse:
     html = f"""<!DOCTYPE html>
-<html lang=\"en\"><head>
-<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
-<title>{title}</title>
-<link rel=\"stylesheet\" href=\"/static/style.css\">
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{_escape(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
 </head><body>
-<header><a href=\"/\" class=\"brand\">Med Study</a></header>
-<main>{body}</main>
-<footer><small>PE checklists study tool — built for Viren</small></footer>
+<div class="aurora"></div>
+<header class="header">
+  <div class="container header-inner">
+    <a href="/" class="brand">Med Study</a>
+    <span class="tag">Physical Exam Checklists</span>
+  </div>
+</header>
+<main class="container">{body}</main>
+<footer class="footer"><small>Built for medical school study — private to Viren</small></footer>
 </body></html>"""
     return HTMLResponse(html)
 
 
 @app.get("/", response_class=HTMLResponse)
 def landing():
-    cards = "".join(
-        f'<a class="card" href="/exam/{e["slug"]}"><h3>{e["title"]}</h3>'
-        f'<p>{len(e["items"])} checklist items</p></a>'
-        for e in EXAMS.values()
-    )
+    cards_parts: list[str] = []
+    palette = ["lavender", "mint", "peach", "sky", "rose", "butter", "lilac"]
+    for i, e in enumerate(EXAMS.values()):
+        color = palette[i % len(palette)]
+        item_count = e.get("item_count") or len(iter_items(e))
+        sec_count = len(e.get("sections", []))
+        cards_parts.append(
+            f'<a class="card exam-card tint-{color}" href="/exam/{_escape(e["slug"])}">'
+            f'<div class="card-ring"></div>'
+            f'<h3>{_escape(e["title"])}</h3>'
+            f'<p class="meta">{sec_count} sections · {item_count} steps</p>'
+            f'</a>'
+        )
+    cards = "".join(cards_parts)
     body = f"""
-    <h1>Choose an exam</h1>
-    <p class="sub">Pick a physical exam checklist to study. Then choose quiz or oral practice.</p>
-    <div class="grid">{cards}</div>
+    <section class="hero">
+      <h1>Pick an exam to study</h1>
+      <p class="sub">Quiz yourself, or recite the whole checklist and get a scored report.</p>
+    </section>
+    <section class="grid grid-cards">{cards}</section>
     """
     return _page(body, "Med Study — Pick an Exam")
 
@@ -221,20 +398,26 @@ def exam_modes(slug: str):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
+    item_count = exam.get("item_count") or len(iter_items(exam))
+    sec_count = len(exam.get("sections", []))
     body = f"""
     <a class="back" href="/">&larr; All exams</a>
-    <h1>{exam['title']}</h1>
-    <p class="sub">{len(exam['items'])} checklist items. Pick a mode.</p>
-    <div class="grid">
-      <a class="card mode" href="/exam/{slug}/quiz">
+    <section class="hero">
+      <h1>{_escape(exam['title'])}</h1>
+      <p class="sub">{sec_count} sections · {item_count} checklist steps. Pick a mode.</p>
+    </section>
+    <section class="grid grid-modes">
+      <a class="card mode-card tint-mint" href="/exam/{_escape(slug)}/quiz">
+        <div class="mode-icon">★</div>
         <h3>Quiz</h3>
         <p>Randomized multiple-choice questions. Fresh each time.</p>
       </a>
-      <a class="card mode" href="/exam/{slug}/oral">
+      <a class="card mode-card tint-lavender" href="/exam/{_escape(slug)}/oral">
+        <div class="mode-icon">✦</div>
         <h3>Oral practice</h3>
-        <p>Recite the full exam aloud. Get a scored report on what you hit and missed.</p>
+        <p>Recite the full exam aloud. Whisper transcribes and you get a scored report.</p>
       </a>
-    </div>
+    </section>
     """
     return _page(body, f"{exam['title']} — Modes")
 
@@ -245,11 +428,14 @@ def quiz_page(slug: str):
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
     body = f"""
-    <a class="back" href="/exam/{slug}">&larr; Back</a>
-    <h1>{exam['title']} — Quiz</h1>
-    <div class="controls">
-      <label>Questions: <input id="count" type="number" value="10" min="1" max="30"></label>
-      <button id="startBtn">Start quiz</button>
+    <a class="back" href="/exam/{_escape(slug)}">&larr; Back</a>
+    <section class="hero">
+      <h1>{_escape(exam['title'])} — Quiz</h1>
+      <p class="sub">Randomized multiple-choice. Answer to reveal.</p>
+    </section>
+    <div class="card controls-card">
+      <label class="control"><span>Questions</span><input id="count" type="number" value="10" min="1" max="30"></label>
+      <button id="startBtn" class="btn primary">Start quiz</button>
     </div>
     <div id="quiz"></div>
     <script>window.EXAM_SLUG = {json.dumps(slug)};</script>
@@ -263,24 +449,40 @@ def oral_page(slug: str):
     if slug not in EXAMS:
         raise HTTPException(404, "Exam not found")
     exam = EXAMS[slug]
-    items_html = "".join(f"<li>{_escape(i)}</li>" for i in exam["items"])
+    # Build checklist HTML grouped by section
+    sec_parts: list[str] = []
+    for sec in exam.get("sections", []):
+        sub_parts: list[str] = []
+        for sub in sec.get("subsections", []):
+            items_html = "".join(f"<li>{_escape(it)}</li>" for it in sub.get("items", []))
+            sub_parts.append(
+                f'<div class="sub-block"><h5>{_escape(sub["name"])}</h5>'
+                f'<ul>{items_html}</ul></div>'
+            )
+        sec_parts.append(
+            f'<div class="sec-block"><h4>{_escape(sec["name"])}</h4>'
+            f'{"".join(sub_parts)}</div>'
+        )
+    checklist_html = "".join(sec_parts)
     body = f"""
-    <a class="back" href="/exam/{slug}">&larr; Back</a>
-    <h1>{exam['title']} — Oral practice</h1>
-    <p class="sub">Click <b>Start recording</b> and recite the full exam aloud. When done, click <b>Stop &amp; score</b>. Uses your browser's built-in speech recognition (Chrome/Safari/Edge).</p>
-    <div class="oral-controls">
-      <button id="startRec">Start recording</button>
-      <button id="stopRec" disabled>Stop &amp; score</button>
+    <a class="back" href="/exam/{_escape(slug)}">&larr; Back</a>
+    <section class="hero">
+      <h1>{_escape(exam['title'])} — Oral practice</h1>
+      <p class="sub">Click <b>Start recording</b>, recite the entire exam aloud, then <b>Stop &amp; score</b>. Audio is transcribed on-server by Whisper.</p>
+    </section>
+    <div class="card controls-card">
+      <button id="startRec" class="btn primary">● Start recording</button>
+      <button id="stopRec" class="btn secondary" disabled>Stop &amp; score</button>
       <span id="recStatus" class="status"></span>
     </div>
     <div class="two-col">
-      <section>
-        <h3>Live transcript</h3>
-        <div id="transcript" class="transcript"></div>
+      <section class="card panel">
+        <h3>Transcript</h3>
+        <div id="transcript" class="transcript">Recording will appear here after you stop…</div>
       </section>
-      <section>
-        <h3>Checklist reference</h3>
-        <ol class="checklist">{items_html}</ol>
+      <section class="card panel">
+        <h3>Checklist</h3>
+        <div class="checklist">{checklist_html}</div>
       </section>
     </div>
     <div id="report"></div>
@@ -288,11 +490,3 @@ def oral_page(slug: str):
     <script src="/static/oral.js"></script>
     """
     return _page(body, f"{exam['title']} — Oral")
-
-
-def _escape(s: str) -> str:
-    return (
-        s.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
