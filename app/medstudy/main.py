@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from .questions import generate_quiz
 from . import llm_grader
+from . import scenarios
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "exams.json"
@@ -76,6 +77,7 @@ def health():
         "exams": len(EXAMS),
         "whisper": _whisper_status(),
         "llm_grader": llm_grader.status(),
+        "scenarios": scenarios.status(),
     }
 
 
@@ -245,6 +247,40 @@ def _get_whisper():
         raise
 
 
+# --------- Scenarios ----------
+
+class ScenarioNewRequest(BaseModel):
+    category: str = "any"
+
+
+class ScenarioScoreRequest(BaseModel):
+    transcript: str
+
+
+@app.post("/api/scenarios/new")
+def api_scenarios_new(req: ScenarioNewRequest):
+    data = scenarios.generate(req.category)
+    if data is None:
+        raise HTTPException(503, "Scenario generator unavailable (check ANTHROPIC_API_KEY)")
+    return data
+
+
+@app.get("/api/scenarios/{scenario_id}")
+def api_scenarios_get(scenario_id: str):
+    data = scenarios.get(scenario_id)
+    if data is None:
+        raise HTTPException(404, "Scenario not found or expired")
+    return data
+
+
+@app.post("/api/scenarios/{scenario_id}/score")
+def api_scenarios_score(scenario_id: str, req: ScenarioScoreRequest):
+    report = scenarios.grade(scenario_id, req.transcript or "")
+    if report is None:
+        raise HTTPException(404, "Scenario not found, expired, or grader unavailable")
+    return report
+
+
 @app.post("/api/transcribe")
 async def transcribe(audio: UploadFile = File(...)):
     """Accept an audio blob and return a transcript using faster-whisper.
@@ -349,12 +385,67 @@ def landing():
     cards = "".join(cards_parts)
     body = f"""
     <section class="hero">
-      <h1>Pick an exam to study</h1>
-      <p class="sub">Quiz yourself, or recite the whole checklist and get a scored report.</p>
+      <h1>Study hub</h1>
+      <p class="sub">Quiz yourself on a checklist, recite an exam aloud, or run a full OSCE scenario.</p>
     </section>
+    <a class="card scenario-hero tint-lilac" href="/scenarios">
+      <div>
+        <span class="q-tag">New</span>
+        <h3>OSCE Scenarios</h3>
+        <p>Get a randomly generated patient chart, then perform and record a focused physical exam. Graded against a scenario-specific rubric by Claude.</p>
+      </div>
+      <div class="scenario-hero-cta">Start →</div>
+    </a>
+    <h2 class="section-heading">Single-exam practice</h2>
     <section class="grid grid-cards">{cards}</section>
     """
-    return _page(body, "Med Study — Pick an Exam")
+    return _page(body, "Med Study")
+
+
+@app.get("/scenarios", response_class=HTMLResponse)
+def scenarios_page():
+    cat_options = "".join(
+        f'<option value="{_escape(slug)}">{_escape(label)}</option>'
+        for slug, label in scenarios.CATEGORIES
+    )
+    body = f"""
+    <a class="back" href="/">&larr; All modes</a>
+    <section class="hero">
+      <h1>OSCE Scenario</h1>
+      <p class="sub">Click <b>Generate</b> to get a random DXM III patient chart. Read it, record yourself performing a focused physical exam, and submit for LLM grading.</p>
+    </section>
+
+    <div class="card controls-card" id="generateCard">
+      <label class="control"><span>Category</span>
+        <select id="category">{cat_options}</select>
+      </label>
+      <button id="generateBtn" class="btn primary">Generate scenario</button>
+      <span id="genStatus" class="status"></span>
+    </div>
+
+    <section id="chartCard" class="card panel" style="display: none;">
+      <div class="panel-head">
+        <h3><span id="scenarioCategory"></span> — <span id="scenarioTitle"></span></h3>
+        <button id="regenerateBtn" class="btn secondary" type="button">New scenario</button>
+      </div>
+      <div id="chart" class="patient-chart"></div>
+    </section>
+
+    <div class="card controls-card" id="recordCard" style="display: none;">
+      <button id="startRec" class="btn primary">● Start recording</button>
+      <button id="stopRec" class="btn secondary" disabled>Stop &amp; grade</button>
+      <span id="recStatus" class="status"></span>
+    </div>
+
+    <section id="transcriptCard" class="card panel" style="display: none;">
+      <h3>Transcript</h3>
+      <div id="transcript" class="transcript">Your recitation will appear here after you stop recording…</div>
+    </section>
+
+    <div id="report"></div>
+    <script src="/static/scenarios.js"></script>
+    """
+    return _page(body, "OSCE Scenarios — Med Study")
 
 
 @app.get("/exam/{slug}", response_class=HTMLResponse)
