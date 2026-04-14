@@ -289,7 +289,23 @@ def grade(scenario_id: str, transcript: str) -> Optional[dict]:
     items = _flatten_rubric(rubric)
     if not items:
         return None
-    critical_texts = set(rubric.get("critical_items", []) or [])
+
+    # Normalize critical-item matching: strip a leading "CRITICAL:" prefix
+    # (the LLM sometimes adds it) and lowercase, so we catch them regardless
+    # of how the model formatted them in the two lists.
+    def _norm(s: str) -> str:
+        s = (s or "").strip()
+        s = re.sub(r"^CRITICAL\s*[:\-]\s*", "", s, flags=re.IGNORECASE)
+        return re.sub(r"\s+", " ", s.lower())
+
+    critical_norms: set[str] = set()
+    for t in rubric.get("critical_items", []) or []:
+        critical_norms.add(_norm(t))
+    # Also treat any rubric item whose text already starts with "CRITICAL:"
+    # as critical — some models inline-flag items instead of using the list.
+    for it in items:
+        if re.match(r"^CRITICAL\s*[:\-]", it["text"], flags=re.IGNORECASE):
+            critical_norms.add(_norm(it["text"]))
 
     items_text = "\n".join(
         f"{it['id']}. [{it['section']}] {it['text']}" for it in items
@@ -342,9 +358,14 @@ def grade(scenario_id: str, transcript: str) -> Optional[dict]:
             g = grade_map.get(flat_idx, {})
             is_cov = bool(g.get("covered", False))
             reason = (g.get("reason") or "").strip()
-            is_critical = item in critical_texts
+            is_critical = _norm(item) in critical_norms
+            # Display text: strip any redundant "CRITICAL: " prefix the model
+            # added, since the UI tags critical items with a badge.
+            display_text = re.sub(
+                r"^CRITICAL\s*[:\-]\s*", "", item, flags=re.IGNORECASE
+            )
             item_reports.append({
-                "item": item,
+                "item": display_text,
                 "covered": is_cov,
                 "reason": reason,
                 "coverage": 1.0 if is_cov else 0.0,
@@ -356,7 +377,7 @@ def grade(scenario_id: str, transcript: str) -> Optional[dict]:
             if is_cov:
                 sec_cov += 1
             elif is_critical:
-                critical_missed.append({"section": sec["name"], "item": item})
+                critical_missed.append({"section": sec["name"], "item": display_text})
             flat_idx += 1
         if sec_total == 0:
             continue
