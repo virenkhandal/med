@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .questions import generate_quiz
+from . import llm_grader
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "exams.json"
@@ -70,7 +71,12 @@ if STATIC_DIR.exists():
 
 @app.get("/healthz")
 def health():
-    return {"ok": True, "exams": len(EXAMS), "whisper": _whisper_status()}
+    return {
+        "ok": True,
+        "exams": len(EXAMS),
+        "whisper": _whisper_status(),
+        "llm_grader": llm_grader.status(),
+    }
 
 
 @app.get("/api/exams")
@@ -136,14 +142,8 @@ def _score_item(item: str, transcript_tokens: set[str]) -> dict:
     }
 
 
-@app.post("/api/exam/{slug}/score")
-def score_oral(slug: str, req: ScoreRequest):
-    if slug not in EXAMS:
-        raise HTTPException(404, "Exam not found")
-    exam = EXAMS[slug]
-    transcript = (req.transcript or "").strip()
+def _keyword_score(exam: dict, transcript: str) -> dict:
     transcript_tokens = set(tokenize(transcript))
-
     total_items = 0
     total_covered = 0
     section_reports: list[dict] = []
@@ -188,7 +188,6 @@ def score_oral(slug: str, req: ScoreRequest):
         total_covered += sec_covered
 
     score_pct = round(100 * total_covered / total_items, 1) if total_items else 0.0
-    # Weakest sections sorted ascending by score, up to 5
     weakest = sorted(section_reports, key=lambda s: s["score_pct"])[:5]
     return {
         "exam": {"slug": exam["slug"], "title": exam["title"]},
@@ -201,7 +200,22 @@ def score_oral(slug: str, req: ScoreRequest):
             {"name": s["name"], "score_pct": s["score_pct"], "covered": s["covered"], "total": s["total"]}
             for s in weakest
         ],
+        "grader": "keyword",
     }
+
+
+@app.post("/api/exam/{slug}/score")
+def score_oral(slug: str, req: ScoreRequest):
+    if slug not in EXAMS:
+        raise HTTPException(404, "Exam not found")
+    exam = EXAMS[slug]
+    transcript = (req.transcript or "").strip()
+
+    # Try the LLM grader first; fall back to keyword on any failure.
+    report = llm_grader.llm_grade(exam, transcript)
+    if report is None:
+        report = _keyword_score(exam, transcript)
+    return report
 
 
 # --------- Whisper transcription ----------

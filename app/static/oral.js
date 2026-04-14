@@ -165,6 +165,21 @@ function gaugeClass(pct) {
 function renderReport(data, tData) {
   reportEl.textContent = '';
 
+  // Grader badge
+  const graderBadge = document.createElement('div');
+  graderBadge.className = 'grader-badge';
+  const dot = document.createElement('span');
+  dot.className = 'dot ' + (data.grader === 'llm' ? 'dot-llm' : 'dot-keyword');
+  graderBadge.appendChild(dot);
+  const label = document.createElement('span');
+  if (data.grader === 'llm') {
+    label.textContent = `Graded by ${data.model || 'Claude'} — paraphrase-aware`;
+  } else {
+    label.textContent = 'Graded by keyword match — literal word overlap';
+  }
+  graderBadge.appendChild(label);
+  reportEl.appendChild(graderBadge);
+
   // Summary stats row
   const header = document.createElement('div');
   header.className = 'report-header';
@@ -243,7 +258,15 @@ function renderReport(data, tData) {
       sub.items.forEach(item => {
         const li = document.createElement('li');
         li.className = item.covered ? 'hit' : 'miss';
-        li.textContent = item.item;
+        const txt = document.createElement('span');
+        txt.textContent = item.item;
+        li.appendChild(txt);
+        if (item.reason) {
+          const rsn = document.createElement('span');
+          rsn.className = 'item-reason';
+          rsn.textContent = ' — ' + item.reason;
+          li.appendChild(rsn);
+        }
         ul.appendChild(li);
       });
       block.appendChild(ul);

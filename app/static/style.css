@@ -556,6 +556,33 @@ main.container {
 
 /* === Report === */
 #report { margin-top: 28px; }
+.grader-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  margin-bottom: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.grader-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.grader-badge .dot-llm { background: var(--accent); box-shadow: 0 0 8px rgba(168, 140, 220, 0.6); }
+.grader-badge .dot-keyword { background: var(--tint-butter-2); }
+.item-reason {
+  color: var(--ink-faint);
+  font-style: italic;
+  font-size: 0.75rem;
+}
 .report-header {
   display: flex;
   gap: 14px;
