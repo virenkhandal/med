@@ -19,9 +19,11 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import re
 import time
 import uuid
+from pathlib import Path
 from typing import Optional
 
 from . import llm_grader
@@ -40,40 +42,103 @@ CATEGORIES = [
     ("rheum", "Rheumatology"),
     ("male_gu", "Male GU"),
     ("female_gu", "Female GU"),
-    ("dxm2_mixed", "DXM II mixed (derm / HEENT / cardio / pulm / abd)"),
 ]
 
 CATEGORY_LABELS = dict(CATEGORIES)
 
-GENERATE_SYSTEM = """You generate clinical OSCE scenarios for Diagnostic Medicine III medical students.
+# Which parsed exam PDFs are in-scope for each scenario category. Rubrics
+# MUST be grounded in the items listed in these exams — no out-of-course
+# maneuvers (e.g. drop-arm test, Lhermitte, ULTT) that aren't in the PDFs.
+CATEGORY_TO_EXAMS: dict[str, list[str]] = {
+    "neuro": ["neurologic"],
+    "msk_spine": ["spine-msk", "neurologic"],
+    "msk_ue": ["upper-extremity-msk", "neurologic"],
+    "msk_le": ["lower-extremity-msk", "neurologic"],
+    "rheum": ["upper-extremity-msk", "lower-extremity-msk", "spine-msk"],
+    "male_gu": ["male-gu"],
+    "female_gu": ["female-gu"],
+}
 
-Each scenario includes:
-- A realistic patient chart the student reads before entering the exam room
-- A grading rubric of the specific physical-exam components the student must perform or verbalize to get credit for a focused exam of this presentation
+# Categories the generator can pick from when the student selects "Any".
+_RANDOMIZABLE = [k for k in CATEGORY_TO_EXAMS if k != "any"]
 
-OSCE CONSTRAINTS (must be reflected in the rubric):
-- No invasive exams on standardized patients (no DRE, no pelvic, no breast). If such an exam would be relevant, the rubric item should say the student should verbalize that they would perform it on a task trainer.
-- Special tests MUST be verbalized by the student, not performed. Rubric items for special tests must read "Verbalize X test" not "Perform X test".
-- No thoracolumbar range of motion (the SP will redirect).
-- Every exam must include: introduction & verification of identity, hand hygiene, PPE, proper draping, general survey, basic cardiovascular screen, basic pulmonary screen, and a focused examination for the presentation.
-- Rubric items must be things the student SAYS OUT LOUD during the focused physical exam. They recite what they are inspecting, palpating, auscultating, assessing, etc.
-- Rubric items should be concrete and specific (e.g. "Inspect the lumbar spine for curvature, asymmetry, and muscle spasm" not "Inspect the back").
-- 15-30 total items across 4-6 sections is typical.
-- Mark "critical items" — actions whose omission would be a critical fail for this specific scenario (e.g. for testicular torsion, examining both testes; for suspected radiculopathy, verbalizing straight-leg raise).
+# Load the same parsed exams.json main.py uses so we can build the palette.
+_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "exams.json"
+with _DATA_FILE.open() as _f:
+    _EXAMS: dict[str, dict] = json.load(_f)
 
-Pick common, teachable presentations. Examples:
-- Neuro: stroke/TIA, Bell palsy, migraine, peripheral neuropathy, carpal tunnel
-- MSK Spine: lumbar radiculopathy, cervical radiculopathy, mechanical LBP, spinal stenosis
-- MSK UE: rotator cuff tear, shoulder impingement, lateral epicondylitis, De Quervain
-- MSK LE: knee OA, meniscus tear, ACL tear, ankle sprain, Achilles rupture, plantar fasciitis
+
+def _build_palette(exam_slugs: list[str]) -> str:
+    """Return a numbered palette of allowed physical exam maneuvers, drawn
+    directly from the parsed CO27 DXM PDFs. The scenario generator must
+    restrict its rubric to items that paraphrase entries in this palette."""
+    lines: list[str] = []
+    for slug in exam_slugs:
+        exam = _EXAMS.get(slug)
+        if not exam:
+            continue
+        lines.append(f"### {exam['title']} (from {exam['source_file']})")
+        for sec in exam.get("sections", []):
+            for sub in sec.get("subsections", []):
+                for item in sub.get("items", []):
+                    if 4 <= len(item) <= 200:
+                        lines.append(
+                            f"- [{sec['name']} → {sub['name']}] {item}"
+                        )
+        lines.append("")
+    return "\n".join(lines).strip()
+
+GENERATE_SYSTEM = """You generate OSCE scenarios for Diagnostic Medicine III students using the student's own course materials as the source of truth.
+
+The user message will include a numbered PALETTE of allowed physical-exam maneuvers taken verbatim from the CO27 DXM PE checklists. Your rubric items MUST come from this palette. Each rubric item should quote or paraphrase a specific line from the palette — the student's instructors wrote these and the exam will be graded against them.
+
+HARD CONSTRAINTS:
+
+1. PALETTE-ONLY rubric.
+   - Every rubric item under "Focused ... Exam" or "Special Tests" must correspond to a specific line in the palette the user provides.
+   - If a maneuver is not in the palette, DO NOT include it — it is not in this student's course. Examples of things you might remember but MUST NOT use unless they are literally in the palette: Drop Arm test, Lhermitte sign, ULTT, Ober test, Thomas test, Yergason test, Apley compression, Slump test, Schober test, Spurling test (only if palette contains it).
+   - Do not invent tests. Do not substitute textbook items for palette items.
+
+2. NO post-exam / Part III content. The rubric is ONLY for the 15-minute focused physical exam (Part II). Do NOT include any of:
+   - documentation, charting, note-writing, or summary
+   - history taking (that is Part I — already done before the encounter)
+   - differential diagnosis discussion, clinical reasoning, must-not-miss explanation
+   - ordering labs or imaging
+   - patient education, counseling, return-precautions, follow-up
+   - closing / thank-you / stepping out of the room
+   If such an item would appear in a textbook checklist, drop it — it belongs to Parts I or III of this OSCE, not the physical exam portion you are grading.
+
+3. Invasive-exam rules. No DRE, no pelvic, no breast exam on the SP. If such an exam would be clinically indicated, the rubric item should say the student should verbalize that they would perform it on a task trainer.
+
+4. Special tests are VERBALIZED, not performed. Any rubric item drawn from the palette's "Special Tests" section must read "Verbalize the ___ test" (not "Perform").
+
+5. No thoracolumbar range of motion (SP will redirect — drop from rubric).
+
+6. Fixed sections everyone does. Every rubric includes these as-is, regardless of the scenario:
+   - "Introduction & Setup" with items: introduce self with first and last name and role; verify patient using two identifiers; wash or sanitize hands; don appropriate PPE; ensure proper draping; verbalize general survey observations.
+   - "Baseline Cardiovascular & Pulmonary" with items: auscultate the heart in all four valve areas; auscultate lung fields bilaterally.
+   These are from the OSCE instructions, not the body-system PDFs, and do NOT need palette matches.
+
+7. Rubric items must be things the student SAYS OUT LOUD during the exam. Start each focused-exam item with an action verb (Inspect / Palpate / Auscultate / Assess / Test / Verbalize).
+
+8. 12-25 total items across 4-5 sections. Critical items (critical fail if omitted) should be the 2-4 maneuvers whose omission would miss the suspected diagnosis (e.g., for suspected testicular torsion, examining both testes and assessing cremasteric reflex).
+
+Pick a common, teachable presentation consistent with the requested category. Examples (not exhaustive):
+- Neuro: Bell palsy, migraine, peripheral neuropathy, carpal tunnel, TIA
+- MSK Spine: lumbar radiculopathy, cervical radiculopathy, mechanical LBP
+- MSK UE: rotator cuff pathology, shoulder impingement, lateral epicondylitis, De Quervain
+- MSK LE: knee OA, meniscus tear, ACL tear, ankle sprain, Achilles rupture
 - Rheum: RA, OA, gout, polymyalgia rheumatica
-- Male GU: epididymitis, testicular torsion, varicocele, inguinal hernia, BPH
-- Female GU: PID, ovarian cyst, ectopic pregnancy, endometriosis
-- DXM II: pneumonia, COPD exacerbation, heart failure, MI, appendicitis, cholecystitis, cellulitis, sinusitis
+- Male GU: epididymitis, testicular torsion, varicocele, inguinal hernia
+- Female GU: PID, ovarian cyst, ectopic pregnancy
 
 Return STRICT JSON only. No prose, no markdown fences."""
 
 GENERATE_USER_TEMPLATE = """Generate an OSCE scenario for category: {category_label}
+
+ALLOWED PALETTE (the scenario's rubric must draw from these maneuvers only — these are the exact lines from the student's CO27 DXM PE checklists; outside items are not in this student's course and must not appear in the rubric):
+
+{palette}
 
 Return JSON in this exact schema:
 {{
@@ -128,17 +193,18 @@ Return ONLY the JSON object, nothing else."""
 
 GRADE_SYSTEM = """You are grading a DXM III medical student's focused physical exam recitation for an OSCE scenario.
 
-The student received a patient chart and was instructed to perform a focused physical exam. They recited aloud what they were doing; you have the Whisper transcript.
+The student received a patient chart and was instructed to perform a 15-minute focused physical exam. They recited aloud what they were doing; you have the Whisper transcript.
 
-For each rubric item, decide whether the student covered that specific action.
+For each rubric item, decide whether the student covered that specific action during the physical exam.
 
 Rules:
 - ACCEPT paraphrasing and layman synonyms: "feel" ≈ "palpate", "look at" ≈ "inspect", "check" ≈ "assess", "listen to" ≈ "auscultate". Both medical-speak and lay-speak count.
 - ACCEPT partial verbalization of a bundled item: if an item lists several sub-components and the student mentioned the item and most of its sub-components, count it covered.
 - REJECT negated statements: "I would not do X" is NOT coverage of X.
 - REJECT vague mentions that don't actually address the specific item.
-- Special tests must be verbalized with the test name. If an item reads "Verbalize straight-leg raise test", the student must at minimum say they would perform that test.
+- Special tests must be verbalized with the test name. If an item reads "Verbalize straight-leg raise test", the student must at minimum say they would perform or verbalize that specific test.
 - IGNORE minor Whisper transcription errors.
+- Grade only what belongs in the 15-min physical exam. Do not penalize the student for not documenting, summarizing, discussing diagnosis, or ordering workup — those belong to Parts I/III of the OSCE and are out of scope for this transcript.
 
 Return STRICT JSON: array where each element is {"id": int, "covered": bool, "reason": "short, <=15 words"}. Include one entry per rubric item. JSON only, no prose, no markdown fences."""
 
@@ -192,11 +258,26 @@ def generate(category: str = "any") -> Optional[dict]:
 
     if category not in CATEGORY_LABELS:
         category = "any"
-    cat_label = CATEGORY_LABELS[category]
-    cat_slug = category if category != "any" else "pick a random one"
+
+    # For "any", pick a specific scoped category up front so we can load the
+    # right palette — otherwise we'd have no concrete PDF to ground against.
+    resolved = category
+    if resolved == "any":
+        resolved = random.choice(_RANDOMIZABLE)
+
+    cat_label = CATEGORY_LABELS[resolved]
+    cat_slug = resolved
+
+    exam_slugs = CATEGORY_TO_EXAMS.get(resolved, [])
+    palette = _build_palette(exam_slugs)
+    if not palette:
+        log.warning("scenario generate: empty palette for %s", resolved)
+        return None
 
     user_msg = GENERATE_USER_TEMPLATE.format(
-        category_label=cat_label, category_slug=cat_slug
+        category_label=cat_label,
+        category_slug=cat_slug,
+        palette=palette,
     )
 
     try:
@@ -232,7 +313,7 @@ def generate(category: str = "any") -> Optional[dict]:
         "body_system": data.get("body_system", "unknown"),
         "chart": data["chart"],
         "rubric": data["rubric"],
-        "category": category,
+        "category": resolved,
     }
     _prune_store()
 
@@ -240,7 +321,7 @@ def generate(category: str = "any") -> Optional[dict]:
         "scenario_id": scenario_id,
         "title": data["title"],
         "body_system": data.get("body_system", "unknown"),
-        "category": category,
+        "category": resolved,
         "category_label": cat_label,
         "chart": data["chart"],
     }
